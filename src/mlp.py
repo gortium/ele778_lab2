@@ -1,9 +1,9 @@
 import math
 import numpy
 
-with open(r'C:\Users\Tazi\Documents\ETS\ELE778\Labo2\ele778_lab2\data\raw\train\man\ae\1a.txt', 'r') as content_file:
-    content = content_file.read()
-    #content = content_file.readline().split(' ')
+with open(r'D:\ETS\ELE778\GitHub\ele778_lab2\data\raw\train\man\ae\1a.txt', 'r') as content_file:
+    #content = content_file.read()
+    content = content_file.read().split(' ')
 ##content = content_file.read().split()
     #map(float,content)
 print (content)
@@ -13,6 +13,8 @@ print (content)
 #self: [(content)]
 
 print (float(content[1]))
+print (float(content[2]))
+print (float(content[1])+float(content[2]))
 
 #type(content[0])
 #print(type(content[2]))
