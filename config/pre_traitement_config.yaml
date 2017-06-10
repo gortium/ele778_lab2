@@ -1,3 +1,0 @@
-test_data_path: /data/raw/test
-train_data_path: /data/raw/train
-vc_data_path: /data/raw/vc
