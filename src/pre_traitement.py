@@ -57,13 +57,13 @@ class PreTraitement:  # Definition de notre classe PreTraitrement
 
     # TODO
     # def filter_static_energy(self):
-    #
+    # content.sort(key=itemgetter(12), reverse=True)
     # TODO
     # def filter_dynamic_energy(self):
-    #
+    #content.sort(key=itemgetter(25), reverse=True)
     # TODO
     # def filter_combined_energy(self):
-    #
+    #content.sort(key=itemgetter(12,25), reverse=True)
     # TODO Fonction pour recreer la structure de folder
     # def walk(root_directory, obj_dict):
     #     for k, v in obj_dict.iteritems():
