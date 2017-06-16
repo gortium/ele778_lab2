@@ -50,20 +50,28 @@ class PreTraitement:  # Definition de notre classe PreTraitrement
                     content = content_file.read().split("\n")
                     for index, line in enumerate(content):
                         content[index] = content[index].split(" ")
+                        content[index].pop()  # supprime le dernier élément vide de chaque ligne
+                    content.pop()  # supprime la dernière ligne qui est vide
                     subdir[filename] = content
+                    for index1, inner in enumerate(content): # convertie les lists en float pour filtrer
+                        for index2, string in enumerate(inner):
+                            content[index1][index2] = float(string)
             parent = functools.reduce(dict.get, folders[:-1], fo)
             parent[folders[-1]] = subdir
         self.raw_tree = fo
 
     # TODO
     # def filter_static_energy(self):
-    # content.sort(key=itemgetter(12), reverse=True)
+        from operator import itemgetter
+    #   content.sort(key=itemgetter(12), reverse=True)
     # TODO
     # def filter_dynamic_energy(self):
-    #content.sort(key=itemgetter(25), reverse=True)
+    #   from operator import itemgetter
+    #   content.sort(key=itemgetter(25), reverse=True)
     # TODO
     # def filter_combined_energy(self):
-    #content.sort(key=itemgetter(12,25), reverse=True)
+    #   from operator import itemgetter
+    #   content.sort(key=itemgetter(12,25), reverse=True)
     # TODO Fonction pour recreer la structure de folder
     # def walk(root_directory, obj_dict):
     #     for k, v in obj_dict.iteritems():
