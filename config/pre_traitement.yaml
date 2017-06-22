@@ -1,1 +1,2 @@
-data_path: data/raw
+raw_data_path: data/raw
+filtered_data_path: data/filtered
