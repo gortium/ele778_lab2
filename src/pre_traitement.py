@@ -69,6 +69,9 @@ class PreTraitement:  # Definition de notre classe PreTraitrement
                     # Same for the last 'line'
                     content.pop()
                     subdir[filename] = content
+                    for index1, inner in enumerate(content): # convertie les lists en float pour filtrer
+                        for index2, string in enumerate(inner):
+                            content[index1][index2] = float(string)
             parent = functools.reduce(dict.get, folders[:-1], fo)
             parent[folders[-1]] = subdir
 
