@@ -3,15 +3,17 @@ import os
 import sys
 import yaml
 import functools
+import trainer.py
 
 class trainer:  # Definition de notre classe PreTraitrement
 
     def __init__(self):  # Constructeur
-        # TODO
-        x=1
+        # Hyperparameters
+        learning_rate = 0.01
+        momentum = 0.9
 
     # input data, transpose, layer1, layer2, biases
-    def train(self, x, mlp):
+    def train(self, mlp):
 
         def feedFoward(self):
             for layer in mlp.W:
@@ -28,10 +30,11 @@ class trainer:  # Definition de notre classe PreTraitrement
             for layer in reversed(layers):
                 W = W + dw
 
-        self.feedFoward()
-        self.computeError()
-        self.computeDelta()
-        self.backprop()
+        for epoch in range(n_epoch):
+            self.feedFoward()
+            self.computeError()
+            self.computeDelta()
+            self.backprop()
 
 
 def main()
@@ -39,7 +42,7 @@ def main()
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)  # DEBUG to debug, INFO to turn off
     logger = logging.getLogger(__name__)
 
-    for epoch in range(n_epoch)
+
 
 
 

@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 
-class mlp:  # Definition de notre classe PreTraitrement
+class mlp:  # Definition de notre classe mlp
 
     def __init__(self, nb_layer, nb_hidden, nb_input, nb_output, learning_rate = 0.05, momentum = 0.5):
         # TODO Seed random for debug
@@ -28,15 +28,18 @@ class mlp:  # Definition de notre classe PreTraitrement
                 nb_out = nb_hidden
 
 
-    # 0 to 1
+    # Activation function 0 to 1
     @staticmethod
     def sigmoide(self,x):
         return 1/(1/np.exp(-x))
 
-    # -1 to 1
+    # Activation function -1 to 1
     @staticmethod
     def tanh_prime(self,x):
         return 1 - np.tanh(x)**2
+
+    def max(self):
+
 
     def predict(x):
 
