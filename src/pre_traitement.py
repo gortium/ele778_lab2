@@ -182,7 +182,7 @@ class PreTraitement:  # Definition de notre classe PreTraitrement
         self.filtered_dynamic_tree = temp_dict
 
         # Write to files
-        self.write_tree(os.path.join(self.paths["abs_filtered_data_path"], "dynamic"), self.filtered_static_tree)
+        self.write_tree(os.path.join(self.paths["abs_filtered_data_path"], "dynamic"), self.filtered_dynamic_tree)
 
     # Will create a folder structure containing filtered data by a average of static and dynamic energy
     def filter_combined_energy(self):
@@ -200,7 +200,7 @@ class PreTraitement:  # Definition de notre classe PreTraitrement
         self.filtered_combined_tree = temp_dict
 
         # Write to files
-        self.write_tree(os.path.join(self.paths["abs_filtered_data_path"], "combined"), self.filtered_static_tree)
+        self.write_tree(os.path.join(self.paths["abs_filtered_data_path"], "combined"), self.filtered_combined_tree)
 
 
 def main():
