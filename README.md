@@ -17,3 +17,6 @@ Dépendance:
 - sys
 - yaml
 - functools
+- copy
+- numpy
+- random
