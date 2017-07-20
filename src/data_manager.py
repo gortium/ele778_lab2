@@ -18,12 +18,14 @@ class DataManager:
         # Variables
         self.max_value = 0
         self.min_value = 0
+        self.list_name = None
+        self.saved_obj = None
         self.paths = {}
         self.trees = dict.fromkeys(["raw", "static", "dynamic", "combined"])
 
         # Generating project and config absolute path
         self.paths["abs_script_path"] = os.path.dirname(__file__)
-        self.paths["rel_config_path"] = "config/pre_traitement.yaml"
+        self.paths["rel_config_path"] = "config/data_manager.yaml"
         self.paths["abs_project_path"] = self.paths["abs_script_path"][:-len(self.paths["abs_script_path"].split("/")[-1])]
         self.paths["abs_config_path"] = os.path.join(self.paths["abs_project_path"], self.paths["rel_config_path"])
 
@@ -70,14 +72,18 @@ class DataManager:
                     # Create list of line. Each line is a list of number
                     for index, line in enumerate(content):
                         content[index] = content[index].split(" ")
-                        # Pop the last 'number' as it's a empty one and cause problem in the sort later
-                        content[index].pop()
+                        # Pop the last 'number' if empty
+                        if content[index][-1] == '':
+                            content[index].pop()
                     # Same for the last 'line'
-                    content.pop()
-                    subdir[filename] = content
-                    for index1, inner in enumerate(content): # convertie les lists en float pour filtrer
+                    if not content[-1]:
+                        content.pop()
+                    # Convert str to float
+                    for index1, inner in enumerate(content):
                         for index2, string in enumerate(inner):
                             content[index1][index2] = float(string)
+                    subdir[filename] = content
+
             parent = functools.reduce(dict.get, folders[:-1], fo)
             parent[folders[-1]] = subdir
 
@@ -120,6 +126,8 @@ class DataManager:
     def find_and(self, obj, callback=None, *args):
         if isinstance(obj, dict):
             for k, v in obj.items():
+                if isinstance(obj[k], list):
+                    self.list_name = k
                 self.find_and(v, callback, *args)
         elif isinstance(obj, list):
             callback(obj, *args)
@@ -129,7 +137,9 @@ class DataManager:
     # Dive randomly in a nested dictionary until it found a list, than return it
     def find_random_and(self, obj, callback=None, *args):
         if isinstance(obj, dict):
-                rand_key = random.choice(obj.keys())
+                rand_key = random.choice(list(obj.keys()))
+                if isinstance(obj[rand_key], list):
+                    self.list_name = rand_key
                 self.find_random_and(obj[rand_key], callback, *args)
         elif isinstance(obj, list):
             callback(obj, *args)
@@ -156,9 +166,11 @@ class DataManager:
             callback(one_list, *args)
 
     def normalize_list(self, one_list, norm_min, norm_max, callback=None, *args):
-        for line in one_list:
-            for element in line:
-                element = norm_min + (element - self.min_value)*(norm_max - norm_min)/(self.max_value-self.min_value)
+        for index1, line in enumerate(one_list):
+            for index2, element in enumerate(line):
+                one_list[index1][index2] = norm_min +\
+                                           (element - self.min_value)*(norm_max - norm_min) /\
+                                           (self.max_value-self.min_value)
 
         # If there is another Callback, execute it
         if callback is not None:
@@ -196,8 +208,19 @@ class DataManager:
         if callback is not None:
             callback(one_list, *args)
 
-    def np_concatonate(self, one_list, np_array):
-        np.concatenate((np_array, np_array(one_list)), axis=0)
+    def np_concatonate(self, one_list, np_array, callback=None, *args):
+        np.concatenate((np_array, np.array(one_list)), axis=0)
+
+        # If there is another Callback, execute it
+        if callback is not None:
+            callback(one_list, *args)
+
+    def save_obj(self, obj, callback=None, *args):
+        self.saved_obj = obj.copy()
+
+        # If there is another Callback, execute it
+        if callback is not None:
+            callback(obj, *args)
 
     def extrapolate_data(self, one_list, ref_index, callback=None, *args):
         min_dif = []
@@ -234,9 +257,6 @@ class DataManager:
 ################################
     ## Filtering functions ##
 ################################
-
-    def normalize_tree(self, obj, norm_min, norm_max):
-        self.find_and(obj, self.save_minmax, self.find_and, self.normalize_list, norm_min, norm_max)
 
     # Will create a folder structure containing filtered data by static energy
     def filter_static_energy(self):

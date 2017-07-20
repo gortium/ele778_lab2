@@ -4,18 +4,19 @@ import sys
 import yaml
 import functools
 import numpy as np
-import mlp
 import data_manager
+import mlperceptron
 import pickle
 import random
-
+from scipy import optimize
 
 class Trainer:
+
     def __init__(self, *existing_mlp):  # Constructeur
         # Hyperparameters
         self.learning_rate = 0.01
         self.momentum = 0.9
-        self.batch_size = 50
+        self.batch_size = 1
         self.n_epoch = 100
         self.activation_function = "sigmoid"
 
@@ -25,7 +26,9 @@ class Trainer:
 
         self.data_manager = data_manager.DataManager()
         self.data_tree = None
-        self.batchs = [self.n_epoch]
+        self.batch = []
+        #self.batch = np.array(self.batch)
+        self.goodAnswers = []
 
         # if existing_mlp:
         #     self.mlp = existing_mlp
@@ -33,32 +36,111 @@ class Trainer:
         #     self.mlp = mlp.MLP()
 
     # Create all the epoch baths, need to know: combined, static or dynamic data ?
-    def create_batch(self, witch_filter):
+    def create_batch(self, witch_filter, mlp):
         # Load data
-        if witch_filter == "combined":
-            self.data_manager.fetch_data(self.data_manager.trees["combined"],
-                                         os.path.join(self.data_manager.paths["abs_filtered_data_path"], "combined"))
-            self.data_tree = self.data_manager.trees["combined"]
-        elif witch_filter == "static":
-            self.data_manager.fetch_data(self.data_manager.trees["static"],
-                                         os.path.join(self.data_manager.paths["abs_filtered_data_path"], "static"))
-            self.data_tree = self.data_manager.trees["static"]
-        elif witch_filter == "dynamic":
-            self.data_manager.fetch_data(self.data_manager.trees["dynamic"],
-                                         os.path.join(self.data_manager.paths["abs_filtered_data_path"], "dynamic"))
-            self.data_tree = self.data_manager.trees["dynamic"]
-        else:
-            return False
+        if self.data_tree is None:
+            if witch_filter == "combined":
+                if self.data_manager.trees["combined"] is None:
+                    self.data_manager.fetch_data("combined",
+                                                 os.path.join(self.data_manager.paths["abs_filtered_data_path"], "combined"))
+                self.data_tree = self.data_manager.trees["combined"]
+            elif witch_filter == "static":
+                if self.data_manager.trees["static"] is None:
+                    self.data_manager.fetch_data("static",
+                                                 os.path.join(self.data_manager.paths["abs_filtered_data_path"], "static"))
+                self.data_tree = self.data_manager.trees["static"]
+            elif witch_filter == "dynamic":
+                if self.data_manager.trees["dynamic"] is None:
+                    self.data_manager.fetch_data("dynamic",
+                                                 os.path.join(self.data_manager.paths["abs_filtered_data_path"], "dynamic"))
+                self.data_tree = self.data_manager.trees["dynamic"]
+            else:
+                return False
 
-        if self.activation_function == "sigmoid":
-            self.data_manager.normalize_tree(self.data_tree, 0, 1)
-        elif self.activation_function == "tanh":
-            self.data_manager.normalize_tree(self.data_tree, -1, 1)
+            # Normolize the data
+            self.data_manager.find_and(self.data_tree, self.data_manager.save_minmax)
+            if self.activation_function == "sigmoid":
+                self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
+            elif self.activation_function == "tanh":
+                self.data_manager.find_and(self.data_manager.normalize_list, -1, 1)
 
-        for batch in self.batchs:
-            batch = np.array()
-            for data in batch:
-                self.data_manager.find_random_and(self.data_tree["test"], self.data_manager.np_concatonate, batch)
+        for batch in range(self.batch_size):
+            self.data_manager.find_random_and(self.data_tree, self.data_manager.save_obj)
+            self.batch.append([inner for outer in self.data_manager.saved_obj for inner in outer][:mlp.nb_input])
+
+            if self.data_manager.list_name[0] == "0":
+                self.goodAnswers.append([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            elif self.data_manager.list_name[0] == "1":
+                self.goodAnswers.append([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+            elif self.data_manager.list_name[0] == "2":
+                self.goodAnswers.append([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
+            elif self.data_manager.list_name[0] == "3":
+                self.goodAnswers.append([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+            elif self.data_manager.list_name[0] == "4":
+                self.goodAnswers.append([0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
+            elif self.data_manager.list_name[0] == "5":
+                self.goodAnswers.append([0, 0, 0, 0, 0, 1, 0, 0, 0, 0])
+            elif self.data_manager.list_name[0] == "6":
+                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
+            elif self.data_manager.list_name[0] == "7":
+                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+            elif self.data_manager.list_name[0] == "8":
+                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
+            elif self.data_manager.list_name[0] == "9":
+                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+
+        self.batch = np.array(self.batch)
+        self.goodAnswers = np.array(self.goodAnswers)
+
+            #self.goodAnswers.append(self.data_manager.list_name.copy())
+
+    def callbackF(self, params):
+        self.N.setParams(params)
+        self.J.append(self.N.costFunction(self.X, self.y))
+
+    def costFunctionWrapper(self, params, X, y):
+        self.N.setParams(params)
+        cost = self.N.costFunction(X, y)
+        grad = self.N.computeGradients(X, y)
+        return cost, grad
+
+    def train(self, X, y):
+        def __init__(self, N):
+            # Make Local reference to network:
+            self.N = N
+
+        def callbackF(self, params):
+            self.N.setParams(params)
+            self.J.append(self.N.costFunction(self.X, self.y))
+            self.testJ.append(self.N.costFunction(self.testX, self.testY))
+
+        def costFunctionWrapper(self, params, X, y):
+            self.N.setParams(params)
+            cost = self.N.costFunction(X, y)
+            grad = self.N.computeGradients(X, y)
+
+            return cost, grad
+
+        def train(self, trainX, trainY, testX, testY):
+            # Make an internal variable for the callback function:
+            self.X = trainX
+            self.y = trainY
+
+            self.testX = testX
+            self.testY = testY
+
+            # Make empty list to store training costs:
+            self.J = []
+            self.testJ = []
+
+            params0 = self.N.getParams()
+
+            options = {'maxiter': 200, 'disp': True}
+            _res = optimize.minimize(self.costFunctionWrapper, params0, jac=True, method='BFGS',
+                                     args=(trainX, trainY), options=options, callback=self.callbackF)
+
+            self.N.setParams(_res.x)
+            self.optimizationResults = _res
 
     # input data, transpose, layers, biases, mlp obj
     def train(self, x, t, W, B, mlp):
@@ -95,7 +177,11 @@ def main():
 
     trainer = Trainer()
 
-    trainer.create_batch("static")
+    mlp = mlperceptron.MLP(2, 40, 60*12, 10)
+
+    trainer.create_batch("static", mlp)
+
+    trainer.train()
 
 
 if __name__ == '__main__':
