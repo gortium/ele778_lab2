@@ -4,7 +4,7 @@ import sys
 import yaml
 import functools
 import numpy as np
-import mlp
+#import mlp
 import data_manager
 import pickle
 import random
@@ -92,6 +92,11 @@ def main():
     # Set logging config
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)  # DEBUG to debug, INFO to turn off
     logger = logging.getLogger(__name__)
+
+    load_mlp = input('Ouvrir un MLP existant? ')
+
+    if load_mlp == 'yes':
+        print('Loading MLP!')
 
     trainer = Trainer()
 
