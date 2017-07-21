@@ -1,0 +1,23 @@
+# Training timout
+timeout:  300
+
+# Training learning rate
+learning_rate: 0.01
+
+# Training momentum
+momentum: 0.9
+
+# Training batch size
+train_batch_size: 10
+
+# Cross validation batch size
+vc_batch_size: 100
+
+# Generalization test batch size
+test_batch_size: 800
+
+# Epoch number
+nb_epoch: 20
+
+# % for the cross validation to pass
+vc_min: 90
