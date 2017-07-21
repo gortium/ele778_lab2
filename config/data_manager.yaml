@@ -1,2 +1,5 @@
+# Raw data path
 raw_data_path: data/raw
+
+# Path to save filtered data
 filtered_data_path: data/filtered

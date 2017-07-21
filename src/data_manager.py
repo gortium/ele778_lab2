@@ -25,12 +25,12 @@ class DataManager:
 
         # Generating project and config absolute path
         self.paths["abs_script_path"] = os.path.dirname(__file__)
-        self.paths["rel_config_path"] = "config/data_manager.yaml"
+        self.paths["rel_config_path"] = "config"
         self.paths["abs_project_path"] = self.paths["abs_script_path"][:-len(self.paths["abs_script_path"].split("/")[-1])]
         self.paths["abs_config_path"] = os.path.join(self.paths["abs_project_path"], self.paths["rel_config_path"])
 
         # Loading config file
-        with open(self.paths["abs_config_path"], "r") as stream:
+        with open(os.path.join(self.paths["abs_config_path"], "data_manager.yaml"), "r") as stream:
             self.config = list(yaml.load_all(stream))
 
         # Generating data absolute paths from config file

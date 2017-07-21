@@ -12,23 +12,97 @@ import time
 
 class Trainer:
 
-    def __init__(self, *existing_mlp):
+    def __init__(self):
         # Set logging config
         logging.basicConfig(stream=sys.stderr, level=logging.INFO) # DEBUG to debug, INFO to turn off
         self.logger = logging.getLogger(__name__)
 
-        # Hyperparameters
-        self.learning_rate = 0.01
-        self.momentum = 0.9
-        self.batch_size = 10
-        self.vc_size = 100
-        self.test_size = 800
-        self.nb_epoch = 20
-        self.activation = "sigmoid"
-        self.vc_min = 85
+        self.data_manager = data_manager.DataManager()
+
+        # Loading trainer config file
+        with open(os.path.join(self.data_manager.paths["abs_config_path"], "trainer.yaml"), "r") as stream:
+            self.config = list(yaml.load_all(stream))
+
+        # Hyperparameters from config file
+        for index, param in enumerate(self.config):
+            if "timeout" in param:
+                self.timeout = self.config[index]["timeout"]
+                self.logger.info("Timeout set to: %f", self.timeout)
+            else:
+                self.logger.error("'timeout' parameter not found")
+            if "learning_rate" in param:
+                self.learning_rate = self.config[index]["learning_rate"]
+                self.logger.info("learning_rate set to: %f", self.learning_rate)
+            else:
+                self.logger.error("'learning_rate' parameter not found")
+            if "momentum" in param:
+                self.momentum = self.config[index]["momentum"]
+                self.logger.info("momentum set to: %f", self.momentum)
+            else:
+                self.logger.error("'momentum' parameter not found")
+            if "train_batch_size" in param:
+                self.train_batch_size = self.config[index]["train_batch_size"]
+                self.logger.info("train_batch_size set to: %f", self.train_batch_size)
+            else:
+                self.logger.error("'train_batch_size' parameter not found")
+            if "vc_batch_size" in param:
+                self.vc_batch_size = self.config[index]["vc_batch_size"]
+                self.logger.info("vc_batch_size set to: %f", self.vc_batch_size)
+            else:
+                self.logger.error("'vc_batch_size' parameter not found")
+            if "test_batch_size" in param:
+                self.test_batch_size = self.config[index]["test_batch_size"]
+                self.logger.info("test_batch_size set to: %f", self.test_batch_size)
+            else:
+                self.logger.error("'test_batch_size' parameter not found")
+            if "nb_epoch" in param:
+                self.nb_epoch = self.config[index]["nb_epoch"]
+                self.logger.info("nb_epoch set to: %f", self.nb_epoch)
+            else:
+                self.logger.error("'nb_epoch' parameter not found")
+            if "vc_min" in param:
+                self.vc_min = self.config[index]["vc_min"]
+                self.logger.info("vc_min set to: %f", self.vc_min)
+            else:
+                self.logger.error("'vc_min' parameter not found")
+
+        # Loading MLP config file
+        with open(os.path.join(self.data_manager.paths["abs_config_path"], "mlp.yaml"), "r") as stream:
+            self.config = list(yaml.load_all(stream))
+
+        # MLP Hyperparameters from config file
+        for index, param in enumerate(self.config):
+            if "nb_layer" in param:
+                self.nb_layer = self.config[index]["nb_layer"]
+                self.logger.info("nb_layer set to: %f", self.nb_layer)
+            else:
+                self.logger.error("'nb_layer' parameter not found")
+
+            if "nb_input" in param:
+                self.nb_input = self.config[index]["nb_input"]
+                self.logger.info("nb_input set to: %f", self.nb_input)
+            else:
+                self.logger.error("'nb_input' parameter not found")
+
+            if "nb_hidden" in param:
+                self.nb_hidden = self.config[index]["nb_hidden"]
+                self.logger.info("nb_hidden set to: %f", self.nb_hidden)
+            else:
+                self.logger.error("'nb_hidden' parameter not found")
+
+            if "nb_output" in param:
+                self.nb_output = self.config[index]["nb_output"]
+                self.logger.info("nb_output set to: %f", self.nb_output)
+            else:
+                self.logger.error("'nb_output' parameter not found")
+
+            if "activation" in param:
+                self.activation = self.config[index]["activation"]
+                self.logger.info("activation set to: %s", str(self.activation))
+            else:
+                self.logger.error("'activation' parameter not found")
 
         # Variable
-        self.data_manager = data_manager.DataManager()
         self.data_tree = None
         self.batchs = []
         self.Ys = []
@@ -66,19 +140,19 @@ class Trainer:
 
             # Normolize the data
             self.data_manager.find_and(self.data_tree, self.data_manager.save_minmax)
-            if self.activation == "sigmoid":
+            if mlp.activation == "sigmoid":
                 self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
-            elif self.activation == "tanh":
+            elif mlp.activation == "tanh":
                 self.data_manager.find_and(self.data_manager.normalize_list, -1, 1)
 
         if mode == "train":
-            size = self.batch_size
+            size = self.train_batch_size
             nb_epoch = self.nb_epoch
         elif mode == "vc":
-            size = self.vc_size
+            size = self.vc_batch_size
             nb_epoch = 1
         elif mode == "test":
-            size = self.test_size
+            size = self.test_batch_size
             nb_epoch = 1
 
         self.batchs = []
@@ -90,10 +164,10 @@ class Trainer:
                 self.data_manager.find_random_and(self.data_tree[mode], self.data_manager.save_obj)
                 batch.append([inner for outer in self.data_manager.saved_obj for inner in outer][:mlp.nb_input])
 
-                if self.activation == "sigmoid":
+                if mlp.activation == "sigmoid":
                     l = 0
                     h = 1
-                elif self.activation == "tanh":
+                elif mlp.activation == "tanh":
                     l = -1
                     h = 1
 
@@ -130,8 +204,8 @@ class Trainer:
     def train(self, mlp, data_type):
         # plt.axis([0, 10, 0, 1])
         # plt.ion()
-        timeout = time.time() + 60 * 60  # 60 minutes from now
         starttime = time.time()
+        timeout = time.time() + self.timeout
         self.logger.info("Training begin..")
         pourcent = 0
         while not pourcent > self.vc_min and not time.time() > timeout:
@@ -163,10 +237,10 @@ class Trainer:
 
             # checking answers
             good = 0
-            for i in range(self.vc_size):
+            for i in range(self.vc_batch_size):
                 good += np.array_equal(self.Ys[0][i], result[i])
 
-            pourcent = good * 100 / self.vc_size
+            pourcent = good * 100 / self.vc_batch_size
 
             self.vc_pourcents.append([pourcent, time.time()])
 
@@ -186,10 +260,10 @@ class Trainer:
 
         # checking answers
         good = 0
-        for i in range(self.test_size):
+        for i in range(self.test_batch_size):
             good += np.array_equal(self.Ys[0][i], result[i])
 
-        pourcent = good * 100 / self.test_size
+        pourcent = good * 100 / self.test_batch_size
 
         self.test_pourcents.append([pourcent, time.time()])
 
@@ -207,17 +281,29 @@ class Trainer:
         with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/mlp.pickle"), "wb") as output_file:
             cPickle.dump(mlp, output_file)
 
+    def load_mlp(self, mlp):
+        with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/mlp.pickle"),"rb") as input_file:
+            mlp = cPickle.load(input_file)
 
 def main():
     # Set logging config
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)  # DEBUG to debug, INFO to turn off
     logger = logging.getLogger(__name__)
 
+    load_mlp = input('Open an existing MLP? (yes or no): ')
+
+    if load_mlp == 'yes':
+        print('Loading MLP!')
+    elif load_mlp == 'no':
+        print('Starting new MLP')
+    else:
+        print('only answer "yes or no" with no caps please.')
+
     trainer = Trainer()
 
-    mlp = mlperceptron.MLP(3, 60*12, 40,  10, "tanh")
+    mlp = mlperceptron.MLP(trainer.nb_layer, trainer.nb_input, trainer.nb_hidden, trainer.nb_output, trainer.activation)
 
-    trainer.train(mlp, "combined")
+    trainer.train(mlp, "static")
 
 
 if __name__ == '__main__':
