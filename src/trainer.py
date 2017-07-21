@@ -6,29 +6,36 @@ import functools
 import numpy as np
 import data_manager
 import mlperceptron
-import pickle
-import random
-from scipy import optimize
+import _pickle as cPickle
+import time
+#import matplotlib.pyplot as plt
 
 class Trainer:
 
-    def __init__(self, *existing_mlp):  # Constructeur
+    def __init__(self, *existing_mlp):
+        # Set logging config
+        logging.basicConfig(stream=sys.stderr, level=logging.INFO) # DEBUG to debug, INFO to turn off
+        self.logger = logging.getLogger(__name__)
+
         # Hyperparameters
         self.learning_rate = 0.01
         self.momentum = 0.9
-        self.batch_size = 1
-        self.n_epoch = 100
-        self.activation_function = "sigmoid"
+        self.batch_size = 10
+        self.vc_size = 100
+        self.test_size = 800
+        self.nb_epoch = 20
+        self.activation = "sigmoid"
+        self.vc_min = 85
 
-        # Supervising matrix
-        D = np.zeros((10, 10), float)
-        np.fill_diagonal(D, 1)
-
+        # Variable
         self.data_manager = data_manager.DataManager()
         self.data_tree = None
-        self.batch = []
-        #self.batch = np.array(self.batch)
-        self.goodAnswers = []
+        self.batchs = []
+        self.Ys = []
+        self.E = []
+        self.dW = []
+        self.vc_pourcents = []
+        self.test_pourcents = []
 
         # if existing_mlp:
         #     self.mlp = existing_mlp
@@ -36,7 +43,7 @@ class Trainer:
         #     self.mlp = mlp.MLP()
 
     # Create all the epoch baths, need to know: combined, static or dynamic data ?
-    def create_batch(self, witch_filter, mlp):
+    def create_batch(self, witch_filter, mode, mlp):
         # Load data
         if self.data_tree is None:
             if witch_filter == "combined":
@@ -59,115 +66,146 @@ class Trainer:
 
             # Normolize the data
             self.data_manager.find_and(self.data_tree, self.data_manager.save_minmax)
-            if self.activation_function == "sigmoid":
+            if self.activation == "sigmoid":
                 self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
-            elif self.activation_function == "tanh":
+            elif self.activation == "tanh":
                 self.data_manager.find_and(self.data_manager.normalize_list, -1, 1)
 
-        for batch in range(self.batch_size):
-            self.data_manager.find_random_and(self.data_tree, self.data_manager.save_obj)
-            self.batch.append([inner for outer in self.data_manager.saved_obj for inner in outer][:mlp.nb_input])
+        if mode == "train":
+            size = self.batch_size
+            nb_epoch = self.nb_epoch
+        elif mode == "vc":
+            size = self.vc_size
+            nb_epoch = 1
+        elif mode == "test":
+            size = self.test_size
+            nb_epoch = 1
 
-            if self.data_manager.list_name[0] == "0":
-                self.goodAnswers.append([1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-            elif self.data_manager.list_name[0] == "1":
-                self.goodAnswers.append([0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
-            elif self.data_manager.list_name[0] == "2":
-                self.goodAnswers.append([0, 0, 1, 0, 0, 0, 0, 0, 0, 0])
-            elif self.data_manager.list_name[0] == "3":
-                self.goodAnswers.append([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
-            elif self.data_manager.list_name[0] == "4":
-                self.goodAnswers.append([0, 0, 0, 0, 1, 0, 0, 0, 0, 0])
-            elif self.data_manager.list_name[0] == "5":
-                self.goodAnswers.append([0, 0, 0, 0, 0, 1, 0, 0, 0, 0])
-            elif self.data_manager.list_name[0] == "6":
-                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])
-            elif self.data_manager.list_name[0] == "7":
-                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
-            elif self.data_manager.list_name[0] == "8":
-                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 0, 0, 1, 0])
-            elif self.data_manager.list_name[0] == "9":
-                self.goodAnswers.append([0, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+        self.batchs = []
+        self.Ys = []
+        for i in range(nb_epoch):
+            batch = []
+            Y = []
+            for j in range(size):
+                self.data_manager.find_random_and(self.data_tree[mode], self.data_manager.save_obj)
+                batch.append([inner for outer in self.data_manager.saved_obj for inner in outer][:mlp.nb_input])
 
-        self.batch = np.array(self.batch)
-        self.goodAnswers = np.array(self.goodAnswers)
+                if self.activation == "sigmoid":
+                    l = 0
+                    h = 1
+                elif self.activation == "tanh":
+                    l = -1
+                    h = 1
 
-            #self.goodAnswers.append(self.data_manager.list_name.copy())
+                if self.data_manager.list_name[0] == "0" or self.data_manager.list_name[0] == "o":
+                    Y.append([h, l, l, l, l, l, l, l, l, l])
+                elif self.data_manager.list_name[0] == "1":
+                    Y.append([l, h, l, l, l, l, l, l, l, l])
+                elif self.data_manager.list_name[0] == "2":
+                    Y.append([l, l, h, l, l, l, l, l, l, l])
+                elif self.data_manager.list_name[0] == "3":
+                    Y.append([l, l, l, h, l, l, l, l, l, l])
+                elif self.data_manager.list_name[0] == "4":
+                    Y.append([l, l, l, l, h, l, l, l, l, l])
+                elif self.data_manager.list_name[0] == "5":
+                    Y.append([l, l, l, l, l, h, l, l, l, l])
+                elif self.data_manager.list_name[0] == "6":
+                    Y.append([l, l, l, l, l, l, h, l, l, l])
+                elif self.data_manager.list_name[0] == "7":
+                    Y.append([l, l, l, l, l, l, l, h, l, l])
+                elif self.data_manager.list_name[0] == "8":
+                    Y.append([l, l, l, l, l, l, l, l, h, l])
+                elif self.data_manager.list_name[0] == "9":
+                    Y.append([l, l, l, l, l, l, l, l, l, h])
+                else:
+                    self.logger.debug("Got a rare fish here.. ")
 
-    def callbackF(self, params):
-        self.N.setParams(params)
-        self.J.append(self.N.costFunction(self.X, self.y))
+            batch = np.array(batch, dtype=float)
+            Y = np.array(Y, dtype=float)
 
-    def costFunctionWrapper(self, params, X, y):
-        self.N.setParams(params)
-        cost = self.N.costFunction(X, y)
-        grad = self.N.computeGradients(X, y)
-        return cost, grad
-
-    def train(self, X, y):
-        def __init__(self, N):
-            # Make Local reference to network:
-            self.N = N
-
-        def callbackF(self, params):
-            self.N.setParams(params)
-            self.J.append(self.N.costFunction(self.X, self.y))
-            self.testJ.append(self.N.costFunction(self.testX, self.testY))
-
-        def costFunctionWrapper(self, params, X, y):
-            self.N.setParams(params)
-            cost = self.N.costFunction(X, y)
-            grad = self.N.computeGradients(X, y)
-
-            return cost, grad
-
-        def train(self, trainX, trainY, testX, testY):
-            # Make an internal variable for the callback function:
-            self.X = trainX
-            self.y = trainY
-
-            self.testX = testX
-            self.testY = testY
-
-            # Make empty list to store training costs:
-            self.J = []
-            self.testJ = []
-
-            params0 = self.N.getParams()
-
-            options = {'maxiter': 200, 'disp': True}
-            _res = optimize.minimize(self.costFunctionWrapper, params0, jac=True, method='BFGS',
-                                     args=(trainX, trainY), options=options, callback=self.callbackF)
-
-            self.N.setParams(_res.x)
-            self.optimizationResults = _res
+            self.batchs.append(batch)
+            self.Ys.append(Y)
 
     # input data, transpose, layers, biases, mlp obj
-    def train(self, x, t, W, B, mlp):
+    def train(self, mlp, data_type):
+        # plt.axis([0, 10, 0, 1])
+        # plt.ion()
+        timeout = time.time() + 60 * 60  # 60 minutes from now
+        starttime = time.time()
+        self.logger.info("Training begin..")
+        pourcent = 0
+        while not pourcent > self.vc_min and not time.time() > timeout:
+            for epoch in range(self.nb_epoch):
 
-        for epoch in range(self.n_epoch):
-            # feedFoward
-            a = x
-            for layer_nb in range(mlp.nb_layer_):
-                i = np.dot(a, mlp.W_[layer_nb]) + mlp.B_[layer_nb]
-                a = mlp.tanh_prime(i)
+                # Generate batch
+                self.create_batch(data_type, "train", mlp)
 
+                # feedFoward
+                yhat = mlp.feed_forward(self.batchs[epoch])
 
-                # # Compute Error and delta
-                # for layer_nb in range(mlp.nb_layer_, -1, -1):
-                #     if layer_nb == mlp.nb_layer_:
-                #         s = np.multiply(np.multiply(np.subtract(d, a), a), np.subtract(1, a))
-                #     else:
-                #         s = np.multiply(a, np.subtract(1, a))
-                #
-                #     if layer_nb == 1:
-                #         dw = np.
-                #     else:
-                #         dw =
-                #
-                # # backprop
-                # for layer in reversed(layers):
-                #     W = W + dw
+                # given activation of the last layer.. the result is..
+                result = mlp.max_in(yhat)
+
+                # if not good, LEARN !
+                if not np.array_equal(result, self.Ys[epoch]):
+
+                    # Compute delta
+                    mlp.backprop(yhat, self.Ys[epoch], self.learning_rate, self.momentum)
+
+            # **** vc ****
+            self.logger.info("All epoch done, now VC")
+
+            # Generate batch
+            self.create_batch(data_type, "vc", mlp)
+
+            # Predicting
+            result = mlp.predict(self.batchs[0])
+
+            # checking answers
+            good = 0
+            for i in range(self.vc_size):
+                good += np.array_equal(self.Ys[0][i], result[i])
+
+            pourcent = good * 100 / self.vc_size
+
+            self.vc_pourcents.append([pourcent, time.time()])
+
+            self.logger.info("VC result: %f %%", pourcent)
+
+        training_time = (time.time() - starttime)
+        self.logger.info("Training took %f seconds", training_time)
+
+        # **** Generalization test ****
+        self.logger.info("VC passed, now TEST")
+
+        # Generate batch
+        self.create_batch(data_type, "test", mlp)
+
+        # Predicting
+        result = mlp.predict(self.batchs[0])
+
+        # checking answers
+        good = 0
+        for i in range(self.test_size):
+            good += np.array_equal(self.Ys[0][i], result[i])
+
+        pourcent = good * 100 / self.test_size
+
+        self.test_pourcents.append([pourcent, time.time()])
+
+        self.logger.info("TEST result: %f %%", pourcent)
+
+        self.logger.info("Saving this beauty..")
+        self.save_mlp(mlp)
+
+        #     plt.pause(0.05)
+        #
+        # while True:
+        #     plt.pause(0.05)
+
+    def save_mlp(self, mlp):
+        with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/mlp.pickle"), "wb") as output_file:
+            cPickle.dump(mlp, output_file)
 
 
 def main():
@@ -177,11 +215,9 @@ def main():
 
     trainer = Trainer()
 
-    mlp = mlperceptron.MLP(2, 40, 60*12, 10)
+    mlp = mlperceptron.MLP(3, 60*12, 40,  10, "tanh")
 
-    trainer.create_batch("static", mlp)
-
-    trainer.train()
+    trainer.train(mlp, "combined")
 
 
 if __name__ == '__main__':

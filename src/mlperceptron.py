@@ -4,55 +4,45 @@ import os
 import sys
 import yaml
 import numpy as np
-import time
 
 
 class MLP:
 
-    def __init__(self, nb_layer, nb_hidden, nb_input, nb_output, learning_rate = 0.05, momentum = 0.5):
-        # TODO Seed random for debug
+    def __init__(self, nb_layer, nb_input, nb_hidden, nb_output, activation):
         np.random.seed(1)
 
         # Init variables
         self.nb_layer = nb_layer
-        self.W = [self.nb_layer]      # ex: nb_layer_ = 2 --> W_ = [ , ]
-        self.B = [self.nb_layer]
-        self.A = [self.nb_layer]
-        self.I = [self.nb_layer]
+        self.X = None
+        self.W = [None] * self.nb_layer
+        self.B = [None] * self.nb_layer
+        self.A = [None] * self.nb_layer
+        self.I = [None] * self.nb_layer
+        self.E = [None] * self.nb_layer
+        self.dW = [None] * self.nb_layer
+        self.old_dW = [0] * self.nb_layer
         self.nb_input = nb_input
         self.nb_output = nb_output
         self.nb_hidden = nb_hidden
+        self.activation = activation
 
         # Creating layers
         layer_in = self.nb_input
         layer_out = self.nb_hidden
-        for i in range(nb_layer-1):
-            self.W[i] = np.random.normal(scale=0.1, size=(layer_in, layer_out))
-            self.B[i] = np.random.normal(scale=0.1, size=layer_out)
+        for layer in range(nb_layer):
+            self.W[layer] = np.random.normal(scale=0.1, size=(layer_in, layer_out))
+            self.B[layer] = np.random.normal(scale=0.1, size=layer_out)
 
             # Preparing variable for next layer
             layer_in = layer_out
-            if i == 0:
+            if layer == nb_layer - 2:
                 layer_out = self.nb_output
             else:
                 layer_out = self.nb_hidden
 
-        self.W = np.array(self.W)
-        self.B = np.array(self.B)
-
-    def feed_forward(self, batch):
-        # Propogate inputs though network
-        for layer_nb in range(self.nb_layer):
-            self.I[layer_nb] = np.dot(batch, self.W[layer_nb])
-            self.A[layer_nb] = self.sigmoid(self.I[layer_nb])
-
-        yHat = self.sigmoid(self.I[-1])
-
-        return yHat
-
     # Activation function 0 to 1
     def sigmoid(self, x):
-        return 1/(1/np.exp(-x))
+        return 1/(1+np.exp(-x))
 
     def sigmoid_prime(self, x):
         return np.exp(-x)/((1+np.exp(-x))**2)
@@ -64,62 +54,66 @@ class MLP:
     def tanh_prime(self, x):
         return 1 - np.tanh(x)**2
 
-    def cost_function(self, batch, y):
-        # Compute cost for given X,y, use weights already stored in class.
-        yHat = self.feed_forward(batch)
-        S = 0.5 * sum((y - yHat) ** 2)
-        return S
+    def feed_forward(self, x):
+        # Propogate inputs though network
 
-    def costFunction_prime(self, batch, y):
-        # Compute derivative with respect to W and W2 for a given X and y:
-        self.yHat = self.feed_forward(batch)
+        # Saving input
+        self.X = x
 
-        yHat = self.yHat
-        dJdW = []
-        last_delta = None
-        for layer_nb in reversed(range(self.nb_layer)):
-            # Last layer (first to be calculated)
-            if layer_nb == self.nb_layer[-1]:
-                delta = np.multiply(-(y - yHat), self.sigmoid_prime(self.I[layer_nb]))
-                dJdW[layer_nb] = np.dot(self.A[layer_nb - 1].T, delta)
-                last_delta = delta
+        # For each layer,
+        for layer in range(self.nb_layer):
 
-            # First layer (last to be calculated)
-            elif layer_nb == self.nb_layer[0]:
-                delta = np.dot(last_delta, self.W[layer_nb - 1].T) * self.sigmoid_prime(self.I[layer_nb - 1])
-                dJdW[layer_nb] = np.dot(batch.T, delta)
-
-            # Other hidden layer
+            # Calculate activation
+            if layer == 0:
+                self.I[layer] = np.dot(x, self.W[layer]) + self.B[layer]
             else:
-                delta = np.dot(last_delta, self.W[layer_nb - 1].T) * self.sigmoid_prime(self.I[layer_nb - 1])
-                dJdW[layer_nb] = np.dot(self.A[layer_nb - 1].T, delta)
-                last_delta = delta
+                self.I[layer] = np.dot(self.A[layer - 1], self.W[layer]) + self.B[layer]
 
-        return dJdW1, dJdW2
+            if self.activation == "sigmoid":
+                self.A[layer] = self.sigmoid(self.I[layer])
+            elif self.activation == "tanh":
+                self.A[layer] = self.tanh(self.I[layer])
 
-    def compute_gradients(self, batch, y):
-        dJdW1, dJdW2 = self.costFunction_prime(batch, y)
-        return np.concatenate((dJdW1.ravel(), dJdW2.ravel()))
+        return self.A[-1]
 
-    # Helper Functions for interacting with other classes:
-    def get_params(self):
-        # Get W1 and W2 unrolled into vector:
-        params = np.concatenate((self.W1.ravel(), self.W2.ravel()))
-        return params
+    # back propagation using batch gradient descent
+    def backprop(self, yhat, Y, learning_rate, momentum):
 
-    def set_params(self, params):
-        # Set W1 and W2 using single paramater vector.
-        W1_start = 0
-        W1_end = self.nb_hidden * self.nb_input
-        self.W1 = np.reshape(params[W1_start:W1_end], (self.nb_input, self.nb_hidden))
-        W2_end = W1_end + self.nb_hidden * self.nb_output
-        self.W2 = np.reshape(params[W1_end:W2_end], (self.nb_hidden, self.nb_output))
+        for layer in reversed(range(self.nb_layer)):
 
-# #TODO
-#     def max(self):
-#
-# #TODO
-#     def predict(x):
+            # Calculating error
+            if layer == self.nb_layer - 1:
+                self.E[layer] = np.multiply((Y - yhat), self.sigmoid_prime(self.I[layer]))
+            else:
+                self.E[layer] = np.dot(self.E[layer + 1], self.W[layer + 1].T) * self.sigmoid_prime(self.I[layer])
+
+            # Calculating dW
+            if layer == 0:
+                self.dW[layer] = np.dot(self.X.T, self.E[layer]) * learning_rate + self.old_dW[layer] * momentum
+            else:
+                self.dW[layer] = np.dot(self.A[layer - 1].T, self.E[layer]) * learning_rate + self.old_dW[layer] * momentum
+
+        # Adjusting weight by dW
+        for layer in range(self.nb_layer):
+            self.W[layer] += self.dW[layer]
+
+        self.old_dW = self.dW
+
+
+    def max_in(self, m):
+        result = np.zeros_like(m)
+        result[np.arange(len(m)), m.argmax(1)] = 1
+        return result
+
+    def predict(self, x):
+        yhat = self.feed_forward(x)
+        return self.max_in(yhat)
+
+
+
+
+
+
 
 
 
