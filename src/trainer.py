@@ -290,6 +290,15 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)  # DEBUG to debug, INFO to turn off
     logger = logging.getLogger(__name__)
 
+    load_mlp = input('Open an existing MLP? (yes or no): ')
+
+    if load_mlp == 'yes':
+        print('Loading MLP!')
+    elif load_mlp == 'no':
+        print('Starting new MLP')
+    else:
+        print('only answer "yes or no" with no caps please.')
+
     trainer = Trainer()
 
     mlp = mlperceptron.MLP(trainer.nb_layer, trainer.nb_input, trainer.nb_hidden, trainer.nb_output, trainer.activation)

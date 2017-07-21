@@ -7,7 +7,6 @@ import random
 import numpy as np
 import copy
 
-
 class DataManager:
 
     def __init__(self):  # Constructeur
@@ -24,9 +23,9 @@ class DataManager:
         self.trees = dict.fromkeys(["raw", "static", "dynamic", "combined"])
 
         # Generating project and config absolute path
-        self.paths["abs_script_path"] = os.path.dirname(__file__)
+        self.paths["abs_script_path"] = os.path.dirname(__file__).replace("/",os.sep)
         self.paths["rel_config_path"] = "config"
-        self.paths["abs_project_path"] = self.paths["abs_script_path"][:-len(self.paths["abs_script_path"].split("/")[-1])]
+        self.paths["abs_project_path"] = self.paths["abs_script_path"][:-len(self.paths["abs_script_path"].split(os.sep)[-1])]
         self.paths["abs_config_path"] = os.path.join(self.paths["abs_project_path"], self.paths["rel_config_path"])
 
         # Loading config file
@@ -66,7 +65,7 @@ class DataManager:
             for filename in subdir:
 
                 # Open it by line
-                with open(path + "/" + filename) as content_file:
+                with open(path + os.sep + filename) as content_file:
                     content = content_file.read().split("\n")
 
                     # Create list of line. Each line is a list of number
@@ -88,7 +87,7 @@ class DataManager:
             parent[folders[-1]] = subdir
 
         # And we have our full directory structure + data !!
-        self.trees[tree] = fo[path.split("/")[-len(folders)]]
+        self.trees[tree] = fo[path.split(os.sep)[-len(folders)]]
 
     # Recreate a folder structure containing data files
     def write_tree(self, root_directory, obj_dict):
