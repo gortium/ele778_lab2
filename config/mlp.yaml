@@ -5,7 +5,7 @@ nb_layer: 2
 nb_input: 720
 
 # Number of hidden neurones
-nb_hidden: 40
+nb_hidden: 100
 
 # Number of output neurones
 nb_output: 10

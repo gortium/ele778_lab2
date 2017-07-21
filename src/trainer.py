@@ -12,7 +12,14 @@ import time
 
 class Trainer:
 
-    def __init__(self):
+    def __init__(self, timeout=None,
+                 learning_rate=None,
+                 momentum=None,
+                 vc_min=None,
+                 nb_epoch=None,
+                 train_batch_size=None,
+                 vc_batch_size=None,
+                 test_batch_size=None):
         # Set logging config
         logging.basicConfig(stream=sys.stderr, level=logging.INFO) # DEBUG to debug, INFO to turn off
         self.logger = logging.getLogger(__name__)
@@ -290,14 +297,14 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)  # DEBUG to debug, INFO to turn off
     logger = logging.getLogger(__name__)
 
-    load_mlp = input('Open an existing MLP? (yes or no): ')
-
-    if load_mlp == 'yes':
-        print('Loading MLP!')
-    elif load_mlp == 'no':
-        print('Starting new MLP')
-    else:
-        print('only answer "yes or no" with no caps please.')
+    # load_mlp = input('Open an existing MLP? (yes or no): ')
+    #
+    # if load_mlp == 'yes':
+    #     print('Loading MLP!')
+    # elif load_mlp == 'no':
+    #     print('Starting new MLP')
+    # else:
+    #     print('only answer "yes or no" with no caps please.')
 
     trainer = Trainer()
 

@@ -83,9 +83,15 @@ class MLP:
 
             # Calculating error
             if layer == self.nb_layer - 1:
-                self.E[layer] = np.multiply((Y - yhat), self.sigmoid_prime(self.I[layer]))
+                if self.activation == "sigmoid":
+                    self.E[layer] = np.multiply((Y - yhat), self.sigmoid_prime(self.I[layer]))
+                elif self.activation == "tanh":
+                    self.E[layer] = np.multiply((Y - yhat), self.tanh_prime(self.I[layer]))
             else:
-                self.E[layer] = np.dot(self.E[layer + 1], self.W[layer + 1].T) * self.sigmoid_prime(self.I[layer])
+                if self.activation == "sigmoid":
+                    self.E[layer] = np.dot(self.E[layer + 1], self.W[layer + 1].T) * self.sigmoid_prime(self.I[layer])
+                elif self.activation == "tanh":
+                    self.E[layer] = np.dot(self.E[layer + 1], self.W[layer + 1].T) * self.tanh_prime(self.I[layer])
 
             # Calculating dW
             if layer == 0:
