@@ -59,6 +59,7 @@ class DataManager:
 
         # if there is directory, file in this path
         for path, dirs, files in os.walk(rootdir):
+            path = '/'.join(path.split('\\'))
             folders = path[start:].split(os.sep)
             subdir = dict.fromkeys(files)
 

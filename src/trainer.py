@@ -4,10 +4,6 @@ import sys
 import yaml
 import functools
 import numpy as np
-<<<<<<< HEAD
-#import mlp
-=======
->>>>>>> pouplier_branch
 import data_manager
 import mlperceptron
 import _pickle as cPickle
@@ -228,13 +224,9 @@ def main():
 
     trainer = Trainer()
 
-<<<<<<< HEAD
-#    trainer.create_batch("static")
-=======
-    mlp = mlperceptron.MLP(3, 60*12, 40,  10, "tanh")
+    mlp = mlperceptron.MLP(3, 60*12, 40,  10, "sigmoid")
 
-    trainer.train(mlp, "combined")
->>>>>>> pouplier_branch
+    trainer.train(mlp, "static")
 
 
 if __name__ == '__main__':
