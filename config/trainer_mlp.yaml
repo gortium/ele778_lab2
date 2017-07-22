@@ -1,5 +1,5 @@
 # Training timout
-timeout:  300
+timeout:  60
 
 # Training learning rate
 learning_rate: 0.01
