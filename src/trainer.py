@@ -68,7 +68,7 @@ class Trainer:
 
         # Loading MLP config file
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "mlp.yaml"), "r") as stream:
-            self.config = list(yaml.load_all(stream))
+            self.config = yaml.load(stream)
 
         # MLP Hyperparameters from config file
         for index, param in enumerate(self.config):
@@ -127,7 +127,7 @@ class Trainer:
 
         # Loading MLP config file
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "mlp.yaml"), "r") as stream:
-            self.config = list(yaml.load_all(stream))
+            self.config_input = yaml.load(stream)
 
         self.nb_layer = input('How many layer? (1, 2 or 3): ')
         self.nb_input = input('How many input? (default 720): ')
@@ -139,44 +139,44 @@ class Trainer:
         # MLP Hyperparameters in config file
         for index, param in enumerate(self.config):
             if "nb_layer" in param:
-                self.config[index]["nb_layer"] = self.nb_layer
-                self.logger.info("nb_layer set to: %f", self.nb_layer)
+                self.config_input[index]["nb_layer"] = int(self.nb_layer)
+                self.logger.info("nb_layer set to: %f", float(self.nb_layer))
             else:
                 self.logger.error("'nb_layer' parameter not found")
 
             if "nb_input" in param:
-                self.config[index]["nb_input"] = self.nb_input
-                self.logger.info("nb_input set to: %f", self.nb_input)
+                self.config_input[index]["nb_input"] = int(self.nb_input)
+                self.logger.info("nb_input set to: %f", float(self.nb_input))
             else:
                 self.logger.error("'nb_input' parameter not found")
 
             if "nb_hidden" in param:
-                self.config[index]["nb_hidden"] = self.nb_hidden
-                self.logger.info("nb_hidden set to: %f", self.nb_hidden)
+                self.config_input[index]["nb_hidden"] = int(self.nb_hidden)
+                self.logger.info("nb_hidden set to: %f", float(self.nb_hidden))
             else:
                 self.logger.error("'nb_hidden' parameter not found")
 
             if "nb_output" in param:
-                self.config[index]["nb_output"] = self.nb_output
-                self.logger.info("nb_output set to: %f", self.nb_output)
+                self.config_input[index]["nb_output"] = int(self.nb_output)
+                self.logger.info("nb_output set to: %f", float(self.nb_output))
             else:
                 self.logger.error("'nb_output' parameter not found")
 
             if "activation" in param:
-                self.config[index]["activation"] = self.activation
+                self.config_input[index]["activation"] = str(self.activation)
                 self.logger.info("activation set to: %s", str(self.activation))
             else:
                 self.logger.error("'activation' parameter not found")
 
             if "filter" in param:
-                self.config[index]["filter"] = self.filter
+                self.config_input[index]["filter"] = str(self.filter)
                 self.logger.info("filter set to: %s", str(self.filter))
             else:
                 self.logger.error("'filter' parameter not found")
 
         # TO save in MLP config file
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "mlp.yaml"), "w") as stream:
-            yaml.dump(self.config, stream, default_flow_style=False)
+            yaml.dump(self.config_input, stream, default_flow_style=False)
 
 
     # Create all the epoch baths, need to know: combined, static or dynamic data ?
@@ -370,7 +370,7 @@ def main():
     else:
         logger.info('only answer "yes" or "no" with no caps please.')
 
-#    mlperceptron.MLP()
+    mlperceptron.MLP(trainer.nb_layer, trainer.nb_input, trainer.nb_hidden, trainer.nb_output, trainer.activation)
 
 if __name__ == '__main__':
     main()

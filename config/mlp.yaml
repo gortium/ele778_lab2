@@ -1,6 +1,6 @@
 - activation: sigmoid
   filter: static
-  nb_hidden: '42'
-  nb_input: '720'
-  nb_layer: '2'
-  nb_output: '10'
+  nb_hidden: 40
+  nb_input: 720
+  nb_layer: 2
+  nb_output: 10
