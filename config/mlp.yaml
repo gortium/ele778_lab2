@@ -1,14 +1,6 @@
-# Number of layer
-nb_layer: 2
-
-# Number of input neurones
-nb_input: 720
-
-# Number of hidden neurones
-nb_hidden: 40
-
-# Number of output neurones
-nb_output: 10
-
-# Activation function
-activation: "sigmoid"
+- activation: sigmoid
+  filter: static
+  nb_hidden: '42'
+  nb_input: '720'
+  nb_layer: '2'
+  nb_output: '10'
