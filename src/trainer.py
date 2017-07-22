@@ -102,6 +102,12 @@ class Trainer:
             else:
                 self.logger.error("'activation' parameter not found")
 
+            if "filter" in param:
+                self.filter = self.config[index]["filter"]
+                self.logger.info("filter set to: %s", str(self.filter))
+            else:
+                self.logger.error("'filter' parameter not found")
+
         # Variable
         self.data_tree = None
         self.batchs = []
@@ -115,6 +121,63 @@ class Trainer:
         #     self.mlp = existing_mlp
         # else:
         #     self.mlp = mlp.MLP()
+
+    # Ask configuration parameter on console and save it in config file
+    def input_config(self):
+
+        # Loading MLP config file
+        with open(os.path.join(self.data_manager.paths["abs_config_path"], "mlp.yaml"), "r") as stream:
+            self.config = list(yaml.load_all(stream))
+
+        self.nb_layer = input('How many layer? (1, 2 or 3): ')
+        self.nb_input = input('How many input? (default 720): ')
+        self.nb_hidden = input('How many hidden neurones? (default 40): ')
+        self.nb_output = input('How many output neurones? (recommend 10): ')
+        self.activation = input('Wich activation? (sigmoid or tanh): ')
+        self.filter = input('Wich filter type? (static, dynamic or combined): ')
+
+        # MLP Hyperparameters in config file
+        for index, param in enumerate(self.config):
+            if "nb_layer" in param:
+                self.config[index]["nb_layer"] = self.nb_layer
+                self.logger.info("nb_layer set to: %f", self.nb_layer)
+            else:
+                self.logger.error("'nb_layer' parameter not found")
+
+            if "nb_input" in param:
+                self.config[index]["nb_input"] = self.nb_input
+                self.logger.info("nb_input set to: %f", self.nb_input)
+            else:
+                self.logger.error("'nb_input' parameter not found")
+
+            if "nb_hidden" in param:
+                self.config[index]["nb_hidden"] = self.nb_hidden
+                self.logger.info("nb_hidden set to: %f", self.nb_hidden)
+            else:
+                self.logger.error("'nb_hidden' parameter not found")
+
+            if "nb_output" in param:
+                self.config[index]["nb_output"] = self.nb_output
+                self.logger.info("nb_output set to: %f", self.nb_output)
+            else:
+                self.logger.error("'nb_output' parameter not found")
+
+            if "activation" in param:
+                self.config[index]["activation"] = self.activation
+                self.logger.info("activation set to: %s", str(self.activation))
+            else:
+                self.logger.error("'activation' parameter not found")
+
+            if "filter" in param:
+                self.config[index]["filter"] = self.filter
+                self.logger.info("filter set to: %s", str(self.filter))
+            else:
+                self.logger.error("'filter' parameter not found")
+
+        # TO save in MLP config file
+        with open(os.path.join(self.data_manager.paths["abs_config_path"], "mlp.yaml"), "w") as stream:
+            yaml.dump(self.config, stream, default_flow_style=False)
+
 
     # Create all the epoch baths, need to know: combined, static or dynamic data ?
     def create_batch(self, witch_filter, mode, mlp):
@@ -290,21 +353,24 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)  # DEBUG to debug, INFO to turn off
     logger = logging.getLogger(__name__)
 
-    load_mlp = input('Open an existing MLP? (yes or no): ')
+    trainer = Trainer()
+    mlp = mlperceptron.MLP(trainer.nb_layer, trainer.nb_input, trainer.nb_hidden, trainer.nb_output, trainer.activation)
+    time.sleep(0.05)
+
+    load_mlp = input('Load last MLP? (yes or no): ')
 
     if load_mlp == 'yes':
-        print('Loading MLP!')
+        logger.info('Loading MLP!')
+        trainer.load_mlp(mlp)
     elif load_mlp == 'no':
-        print('Starting new MLP')
+        logger.info('Starting new MLP')
+        time.sleep(0.05)
+        trainer.input_config()
+        trainer.train(mlp, trainer.filter)
     else:
-        print('only answer "yes or no" with no caps please.')
+        logger.info('only answer "yes" or "no" with no caps please.')
 
-    trainer = Trainer()
-
-    mlp = mlperceptron.MLP(trainer.nb_layer, trainer.nb_input, trainer.nb_hidden, trainer.nb_output, trainer.activation)
-
-    trainer.train(mlp, "static")
-
+#    mlperceptron.MLP()
 
 if __name__ == '__main__':
     main()
