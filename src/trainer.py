@@ -315,6 +315,17 @@ class Trainer:
         # **** Generalization test ****
         self.logger.info("VC passed, now TEST")
 
+        self.test(mlp, data_type)
+
+        self.logger.info("Saving this beauty..")
+        self.save_mlp(mlp)
+
+        #     plt.pause(0.05)
+        #
+        # while True:
+        #     plt.pause(0.05)
+
+    def test(self, mlp, data_type):
         # Generate batch
         self.create_batch(data_type, "test", mlp)
 
@@ -332,21 +343,15 @@ class Trainer:
 
         self.logger.info("TEST result: %f %%", pourcent)
 
-        self.logger.info("Saving this beauty..")
-        self.save_mlp(mlp)
-
-        #     plt.pause(0.05)
-        #
-        # while True:
-        #     plt.pause(0.05)
-
     def save_mlp(self, mlp):
         with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/mlp.pickle"), "wb") as output_file:
             cPickle.dump(mlp, output_file)
 
-    def load_mlp(self, mlp):
+    def load_mlp(self, mlp, data_type):
         with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/mlp.pickle"),"rb") as input_file:
             mlp = cPickle.load(input_file)
+
+        self.test(mlp, data_type)
 
 def main():
     # Set logging config
@@ -361,7 +366,8 @@ def main():
 
     if load_mlp == 'yes':
         logger.info('Loading MLP!')
-        trainer.load_mlp(mlp)
+        time.sleep(0.05)
+        trainer.load_mlp(mlp, trainer.filter)
     elif load_mlp == 'no':
         logger.info('Starting new MLP')
         time.sleep(0.05)
@@ -369,8 +375,6 @@ def main():
         trainer.train(mlp, trainer.filter)
     else:
         logger.info('only answer "yes" or "no" with no caps please.')
-
-    mlperceptron.MLP(trainer.nb_layer, trainer.nb_input, trainer.nb_hidden, trainer.nb_output, trainer.activation)
 
 if __name__ == '__main__':
     main()
