@@ -66,11 +66,11 @@ class Trainer:
             else:
                 self.logger.error("'vc_min' parameter not found")
 
-        # Loading MLP config file
+        # Loading LVQ config file
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "trainer_lvq.yaml"), "r") as stream:
             self.config = yaml.load(stream)
 
-        # MLP Hyperparameters from config file
+        # LVQ Hyperparameters from config file
         for index, param in enumerate(self.config):
             if "nb_represent" in param:
                 self.nb_layer = self.config[index]["nb_represent"]
@@ -114,7 +114,7 @@ class Trainer:
     # Ask configuration parameter on console and save it in config file
     def input_config(self):
 
-        # Loading MLP config file
+        # Loading LVQ config file
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "lvq.yaml"), "r") as stream:
             self.config_input = yaml.load(stream)
 
@@ -124,7 +124,7 @@ class Trainer:
         self.nb_output = input('How many output neurones? (recommend 10): ')
         self.filter = input('Wich filter type? (static, dynamic or combined): ')
 
-        # MLP Hyperparameters in config file
+        # LVQ Hyperparameters in config file
         for index, param in enumerate(self.config):
             if "nb_represent" in param:
                 self.config_input[index]["nb_represent"] = int(self.nb_layer)
@@ -156,7 +156,7 @@ class Trainer:
             else:
                 self.logger.error("'filter' parameter not found")
 
-        # TO save in MLP config file
+        # TO save in LVQ config file
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "lvq.yaml"), "w") as stream:
             yaml.dump(self.config_input, stream, default_flow_style=False)
 
@@ -184,11 +184,13 @@ class Trainer:
                 return False
 
             # Normolize the data
-            self.data_manager.find_and(self.data_tree, self.data_manager.save_minmax)
-            if mlp.activation == "sigmoid":
-                self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
-            elif mlp.activation == "tanh":
-                self.data_manager.find_and(self.data_manager.normalize_list, -1, 1)
+            self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
+
+        #   self.data_manager.find_and(self.data_tree, self.data_manager.save_minmax)
+        #   if mlp.activation == "sigmoid":
+        #       self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
+        #   elif mlp.activation == "tanh":
+        #       self.data_manager.find_and(self.data_manager.normalize_list, -1, 1)
 
         if mode == "train":
             size = self.train_batch_size
@@ -242,7 +244,7 @@ class Trainer:
             self.Ys.append(Y)
 
     # input data, transpose, layers, biases, mlp obj
-    def train(self, mlp, data_type):
+    def train(self, lvq, data_type):
         # plt.axis([0, 10, 0, 1])
         # plt.ion()
         starttime = time.time()
@@ -255,8 +257,8 @@ class Trainer:
                 # Generate batch
                 self.create_batch(data_type, "train", mlp)
 
-                # feedFoward
-                yhat = mlp.feed_forward(self.batchs[epoch])
+                # feedFoward (changed to distance calculation)
+                yhat = lvq.feed_forward(self.batchs[epoch])
 
                 # given activation of the last layer.. the result is..
                 result = mlp.max_in(yhat)
@@ -337,7 +339,7 @@ def main():
     logger = logging.getLogger(__name__)
 
     trainer = Trainer()
-    mlp = mlperceptron.MLP(trainer.nb_layer, trainer.nb_input, trainer.nb_hidden, trainer.nb_output, trainer.activation)
+    lvq = lvq.LVQ(trainer.nb_represent, trainer.nb_input, trainer.nb_class, trainer.nb_output)
     time.sleep(0.05)
 
     load_mlp = input('Load last MLP? (yes or no): ')

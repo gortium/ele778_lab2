@@ -62,7 +62,7 @@ class LVQ:
 
         return self.A[-1]
 
-    # back propagation using batch gradient descent
+    # back propagation (push or pull representative)
     def backprop(self, yhat, Y, learning_rate, momentum):
 
         for layer in reversed(range(self.nb_layer)):
