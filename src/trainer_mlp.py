@@ -19,8 +19,8 @@ class Trainer:
 
         self.data_manager = data_manager.DataManager()
 
-        # Loading trainer config file
-        with open(os.path.join(self.data_manager.paths["abs_config_path"], "trainer.yaml"), "r") as stream:
+        # Loading trainer_mlp config file
+        with open(os.path.join(self.data_manager.paths["abs_config_path"], "trainer_mlp.yaml"), "r") as stream:
             self.config = list(yaml.load_all(stream))
 
         # Hyperparameters from config file

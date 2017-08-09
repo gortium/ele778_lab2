@@ -5,9 +5,10 @@ import yaml
 import functools
 import numpy as np
 import data_manager
-import mlperceptron
+import lvqantization
 import _pickle as cPickle
 import time
+import random
 #import matplotlib.pyplot as plt
 
 class Trainer:
@@ -67,14 +68,14 @@ class Trainer:
                 self.logger.error("'vc_min' parameter not found")
 
         # Loading LVQ config file
-        with open(os.path.join(self.data_manager.paths["abs_config_path"], "trainer_lvq.yaml"), "r") as stream:
+        with open(os.path.join(self.data_manager.paths["abs_config_path"], "lvq.yaml"), "r") as stream:
             self.config = yaml.load(stream)
 
         # LVQ Hyperparameters from config file
         for index, param in enumerate(self.config):
             if "nb_represent" in param:
-                self.nb_layer = self.config[index]["nb_represent"]
-                self.logger.info("nb_represent set to: %f", self.nb_layer)
+                self.nb_represent = self.config[index]["nb_represent"]
+                self.logger.info("nb_represent set to: %f", self.nb_represent)
             else:
                 self.logger.error("'nb_layer' parameter not found")
 
@@ -85,10 +86,10 @@ class Trainer:
                 self.logger.error("'nb_input' parameter not found")
 
             if "nb_classe" in param:
-                self.nb_hidden = self.config[index]["nb_classe"]
-                self.logger.info("nb_classe set to: %f", self.nb_hidden)
+                self.nb_classe = self.config[index]["nb_classe"]
+                self.logger.info("nb_classe set to: %f", self.nb_classe)
             else:
-                self.logger.error("'nb_hidden' parameter not found")
+                self.logger.error("'nb_classe' parameter not found")
 
             if "nb_output" in param:
                 self.nb_output = self.config[index]["nb_output"]
@@ -106,7 +107,8 @@ class Trainer:
         self.data_tree = None
         self.batchs = []
         self.Ys = []
-        self.E = []
+    #   self.E = []
+        self.W = {0:[],1:[],2:[],3:[],4:[],5:[],6:[],7:[],8:[],9:[]}
         self.dW = []
         self.vc_pourcents = []
         self.test_pourcents = []
@@ -127,8 +129,8 @@ class Trainer:
         # LVQ Hyperparameters in config file
         for index, param in enumerate(self.config):
             if "nb_represent" in param:
-                self.config_input[index]["nb_represent"] = int(self.nb_layer)
-                self.logger.info("nb_represent set to: %f", float(self.nb_layer))
+                self.config_input[index]["nb_represent"] = int(self.nb_represent)
+                self.logger.info("nb_represent set to: %f", float(self.nb_represent))
             else:
                 self.logger.error("'nb_layer' parameter not found")
 
@@ -139,10 +141,10 @@ class Trainer:
                 self.logger.error("'nb_input' parameter not found")
 
             if "nb_classe" in param:
-                self.config_input[index]["nb_classe"] = int(self.nb_hidden)
-                self.logger.info("nb_classe set to: %f", float(self.nb_hidden))
+                self.config_input[index]["nb_classe"] = int(self.nb_classe)
+                self.logger.info("nb_classe set to: %f", float(self.nb_classe))
             else:
-                self.logger.error("'nb_hidden' parameter not found")
+                self.logger.error("'nb_classe' parameter not found")
 
             if "nb_output" in param:
                 self.config_input[index]["nb_output"] = int(self.nb_output)
@@ -162,7 +164,8 @@ class Trainer:
 
 
     # Create all the epoch baths, need to know: combined, static or dynamic data ?
-    def create_batch(self, witch_filter, mode, mlp):
+    def create_batch(self, witch_filter, mode, lvq):
+
         # Load data
         if self.data_tree is None:
             if witch_filter == "combined":
@@ -187,9 +190,9 @@ class Trainer:
             self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
 
         #   self.data_manager.find_and(self.data_tree, self.data_manager.save_minmax)
-        #   if mlp.activation == "sigmoid":
+        #   if lvq.activation == "sigmoid":
         #       self.data_manager.find_and(self.data_manager.normalize_list, 0, 1)
-        #   elif mlp.activation == "tanh":
+        #   elif lvq.activation == "tanh":
         #       self.data_manager.find_and(self.data_manager.normalize_list, -1, 1)
 
         if mode == "train":
@@ -203,47 +206,100 @@ class Trainer:
             nb_epoch = 1
 
         self.batchs = []
-        self.Ys = []
+
         for i in range(nb_epoch):
-            batch = []
-            Y = []
+            batch = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}
             for j in range(size):
                 self.data_manager.find_random_and(self.data_tree[mode], self.data_manager.save_obj)
-                batch.append([inner for outer in self.data_manager.saved_obj for inner in outer][:mlp.nb_input])
 
-                l = 0
-                h = 1
-
-                if self.data_manager.list_name[0] == "0" or self.data_manager.list_name[0] == "o":
-                    Y.append([h, l, l, l, l, l, l, l, l, l])
+                if self.data_manager.list_name[0] == "o":
+                    batch[0].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "1":
-                    Y.append([l, h, l, l, l, l, l, l, l, l])
+                    batch[1].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "2":
-                    Y.append([l, l, h, l, l, l, l, l, l, l])
+                    batch[2].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "3":
-                    Y.append([l, l, l, h, l, l, l, l, l, l])
+                    batch[3].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "4":
-                    Y.append([l, l, l, l, h, l, l, l, l, l])
+                    batch[4].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "5":
-                    Y.append([l, l, l, l, l, h, l, l, l, l])
+                    batch[5].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "6":
-                    Y.append([l, l, l, l, l, l, h, l, l, l])
+                    batch[6].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "7":
-                    Y.append([l, l, l, l, l, l, l, h, l, l])
+                    batch[7].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "8":
-                    Y.append([l, l, l, l, l, l, l, l, h, l])
+                    batch[8].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 elif self.data_manager.list_name[0] == "9":
-                    Y.append([l, l, l, l, l, l, l, l, l, h])
+                    batch[9].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                 else:
                     self.logger.debug("Got a rare fish here.. ")
 
-            batch = np.array(batch, dtype=float)
-            Y = np.array(Y, dtype=float)
-
             self.batchs.append(batch)
-            self.Ys.append(Y)
 
-    # input data, transpose, layers, biases, mlp obj
+    #
+    def select_representative(self, witch_filter, lvq):
+
+        # Load data
+        if self.data_tree is None:
+            if witch_filter == "combined":
+                if self.data_manager.trees["combined"] is None:
+                    self.data_manager.fetch_data("combined",
+                                                 os.path.join(self.data_manager.paths["abs_filtered_data_path"],
+                                                              "combined"))
+                self.data_tree = self.data_manager.trees["combined"]
+            elif witch_filter == "static":
+                if self.data_manager.trees["static"] is None:
+                    self.data_manager.fetch_data("static",
+                                                 os.path.join(self.data_manager.paths["abs_filtered_data_path"],
+                                                              "static"))
+                self.data_tree = self.data_manager.trees["static"]
+            elif witch_filter == "dynamic":
+                if self.data_manager.trees["dynamic"] is None:
+                    self.data_manager.fetch_data("dynamic",
+                                                 os.path.join(self.data_manager.paths["abs_filtered_data_path"],
+                                                              "dynamic"))
+                self.data_tree = self.data_manager.trees["dynamic"]
+            else:
+                return False
+
+            size = self.train_batch_size
+            representor = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}
+
+            while 1:
+                for j in range(size):
+                    self.data_manager.find_random_and(self.data_tree["train"], self.data_manager.save_obj)
+
+                    if self.data_manager.list_name[0] == "o" and len(representor[0]) < 3:
+                        representor[0].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "1" and len(representor[1]) < 3:
+                        representor[1].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "2" and len(representor[2]) < 3:
+                        representor[2].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "3" and len(representor[3]) < 3:
+                        representor[3].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "4" and len(representor[4]) < 3:
+                        representor[4].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "5" and len(representor[5]) < 3:
+                        representor[5].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "6" and len(representor[6]) < 3:
+                        representor[6].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "7" and len(representor[7]) < 3:
+                        representor[7].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "8" and len(representor[8]) < 3:
+                        representor[8].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    elif self.data_manager.list_name[0] == "9" and len(representor[9]) < 3:
+                        representor[9].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
+                    else:
+                        self.logger.debug("Got a rare fish here.. ")
+
+                # test if all representant are selected
+                if sum(len(representor[i]) for i in representor) == 30:
+                    self.W = representor
+                    break
+
+
+    # input data, transpose, layers, biases, lvq obj
     def train(self, lvq, data_type):
         # plt.axis([0, 10, 0, 1])
         # plt.ion()
@@ -251,32 +307,36 @@ class Trainer:
         timeout = time.time() + self.timeout
         self.logger.info("Training begin..")
         pourcent = 0
+
+        # Select representative
+        self.select_representative(data_type, lvq)
+
         while not pourcent > self.vc_min and not time.time() > timeout:
             for epoch in range(self.nb_epoch):
 
                 # Generate batch
-                self.create_batch(data_type, "train", mlp)
+                self.create_batch(data_type, "train", lvq)
 
-                # feedFoward (changed to distance calculation)
-                yhat = lvq.feed_forward(self.batchs[epoch])
+                # distance_test (changed to distance calculation)
+                yhat = lvq.distance(self.batchs[epoch], self.W)
 
                 # given activation of the last layer.. the result is..
-                result = mlp.max_in(yhat)
+                result = lvq.max_in(yhat)
 
                 # if not good, LEARN !
                 if not np.array_equal(result, self.Ys[epoch]):
 
                     # Compute delta
-                    mlp.backprop(yhat, self.Ys[epoch], self.learning_rate, self.momentum)
+                    lvq.backprop(yhat, self.Ys[epoch], self.learning_rate, self.momentum)
 
             # **** vc ****
             self.logger.info("All epoch done, now VC")
 
             # Generate batch
-            self.create_batch(data_type, "vc", mlp)
+            self.create_batch(data_type, "vc", lvq)
 
             # Predicting
-            result = mlp.predict(self.batchs[0])
+            result = lvq.predict(self.batchs[0])
 
             # checking answers
             good = 0
@@ -295,22 +355,22 @@ class Trainer:
         # **** Generalization test ****
         self.logger.info("VC passed, now TEST")
 
-        self.test(mlp, data_type)
+        self.test(lvq, data_type)
 
         self.logger.info("Saving this beauty..")
-        self.save_mlp(mlp)
+        self.save_lvq(lvq)
 
         #     plt.pause(0.05)
         #
         # while True:
         #     plt.pause(0.05)
 
-    def test(self, mlp, data_type):
+    def test(self, lvq, data_type):
         # Generate batch
-        self.create_batch(data_type, "test", mlp)
+        self.create_batch(data_type, "test", lvq)
 
         # Predicting
-        result = mlp.predict(self.batchs[0])
+        result = lvq.predict(self.batchs[0], self.W)
 
         # checking answers
         good = 0
@@ -323,15 +383,15 @@ class Trainer:
 
         self.logger.info("TEST result: %f %%", pourcent)
 
-    def save_mlp(self, mlp):
-        with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/mlp.pickle"), "wb") as output_file:
-            cPickle.dump(mlp, output_file)
+    def save_lvq(self, lvq):
+        with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/lvq.pickle"), "wb") as output_file:
+            cPickle.dump(lvq, output_file)
 
-    def load_mlp(self, mlp, data_type):
-        with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/mlp.pickle"),"rb") as input_file:
-            mlp = cPickle.load(input_file)
+    def load_lvq(self, lvq, data_type):
+        with open(os.path.join(self.data_manager.paths["abs_project_path"], "save/lvq.pickle"),"rb") as input_file:
+            lvq = cPickle.load(input_file)
 
-        self.test(mlp, data_type)
+        self.test(lvq, data_type)
 
 def main():
     # Set logging config
@@ -339,20 +399,21 @@ def main():
     logger = logging.getLogger(__name__)
 
     trainer = Trainer()
-    lvq = lvq.LVQ(trainer.nb_represent, trainer.nb_input, trainer.nb_class, trainer.nb_output)
+    lvq = lvqantization.LVQ(trainer.nb_represent, trainer.nb_classe, trainer.nb_input, trainer.nb_output)
     time.sleep(0.05)
 
-    load_mlp = input('Load last MLP? (yes or no): ')
+ #   load_lvq = input('Load last lvq? (yes or no): ')
+    trainer.train(lvq, trainer.filter) # for testing only, delete when working
 
-    if load_mlp == 'yes':
-        logger.info('Loading MLP!')
+    if load_lvq == 'yes':
+        logger.info('Loading LVQ!')
         time.sleep(0.05)
-        trainer.load_mlp(mlp, trainer.filter)
-    elif load_mlp == 'no':
-        logger.info('Starting new MLP')
+        trainer.load_lvq(lvq, trainer.filter)
+    elif load_lvq == 'no':
+        logger.info('Starting new LVQ')
         time.sleep(0.05)
-        trainer.input_config()
-        trainer.train(mlp, trainer.filter)
+    #   trainer.input_config()
+        trainer.train(lvq, trainer.filter)
     else:
         logger.info('only answer "yes" or "no" with no caps please.')
 

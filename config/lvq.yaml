@@ -1,5 +1,5 @@
 - filter: static
-  nb_represent: 3
   nb_classe: 10
   nb_input: 40
   nb_output: 10
+  nb_represent: 3

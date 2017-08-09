@@ -8,17 +8,18 @@ import numpy as np
 
 class LVQ:
 
-    def __init__(self, nb_represent, nb_classe, nb_input, nb_output,):
+    def __init__(self, nb_represent, nb_classe, nb_input, nb_output):
         np.random.seed(1)
 
         # Init variables
         self.nb_represent = nb_represent
-        self.X = None
-        self.W = [None]
-        self.old_W = [0]
         self.nb_classe = nb_classe
         self.nb_input = nb_input
         self.nb_output = nb_output
+        self.X = None
+        self.W = None
+        self.d = [None] * self.nb_represent
+        self.old_W = [0]
    #     self.B = [None] * self.nb_layer
    #     self.A = [None] * self.nb_layer
   #      self.I = [None] * self.nb_layer
@@ -27,40 +28,41 @@ class LVQ:
  #       self.nb_hidden = nb_hidden
  #       self.activation = activation
 
-        # Choosing representative
-        layer_in = self.nb_input
-        for classe in range(nb_classe):
-            for rep in range(nb_represent):
-                self.W[layer] = np.random.normal(scale=0.1, size=(layer_in, layer_out))
-
-            # Preparing variable for next layer
-            layer_in = layer_out
-            if layer == nb_layer - 2:
-                layer_out = self.nb_output
-            else:
-                layer_out = self.nb_hidden
-
-    def feed_forward(self, x):
+    def distance(self, x, w):
         # Propogate inputs though network
 
         # Saving input
         self.X = x
+        self.W = w
+        square = 0
+        v = 0   # vector position in vector array
+        vn = 0   # number position in vector array
+        r = 0   # representative position in representative array
+        rn = 0   # number position in representative array
 
-        # For each layer,
-        for layer in range(self.nb_layer):
+        # (vector classe, vector number, representative classe, distance from representative)
+        distance = np.zeros((10,10,10,3))
+        
+        
+        for v_classe in x:
+            for vector in x[v_classe]:
+                if len(x[v_classe]) != 0:
+                    for r_classe in w:
+                        for represent in w[r_classe]:
+                            for  number in vector:
+                                square += (number - represent[vn])**2
+                                vn += 1
+                            vn = 0
+                            distance[v_classe][v][r][rn] = square
+                            square = 0
+                            rn += 1
+                        rn = 0
+                        r += 1
+                    r = 0
+                v += 1
+            v = 0
 
-            # Calculate activation
-            if layer == 0:
-                self.I[layer] = np.dot(x, self.W[layer]) + self.B[layer]
-            else:
-                self.I[layer] = np.dot(self.A[layer - 1], self.W[layer]) + self.B[layer]
-
-            if self.activation == "sigmoid":
-                self.A[layer] = self.sigmoid(self.I[layer])
-            elif self.activation == "tanh":
-                self.A[layer] = self.tanh(self.I[layer])
-
-        return self.A[-1]
+        return distance
 
     # back propagation (push or pull representative)
     def backprop(self, yhat, Y, learning_rate, momentum):
@@ -91,8 +93,8 @@ class LVQ:
         result[np.arange(len(m)), m.argmax(1)] = 1
         return result
 
-    def predict(self, x):
-        yhat = self.feed_forward(x)
+    def predict(self, x, w):
+        yhat = self.distance(x, w)
         return self.max_in(yhat)
 
 
