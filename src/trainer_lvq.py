@@ -320,14 +320,11 @@ class Trainer:
                 # distance_test (changed to distance calculation)
                 yhat = lvq.distance(self.batchs[epoch], self.W)
 
-                # given activation of the last layer.. the result is..
-                result = lvq.max_in(yhat)
+                # is the closest representative of the same class?
+                result = lvq.closest_in(yhat)
 
-                # if not good, LEARN !
-                if not np.array_equal(result, self.Ys[epoch]):
-
-                    # Compute delta
-                    lvq.backprop(yhat, self.Ys[epoch], self.learning_rate, self.momentum)
+                # Compute push or pull of each closest representative
+                lvq.push_pull(yhat, result, self.learning_rate)
 
             # **** vc ****
             self.logger.info("All epoch done, now VC")

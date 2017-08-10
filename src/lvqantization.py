@@ -65,7 +65,7 @@ class LVQ:
         return distance
 
     # back propagation (push or pull representative)
-    def backprop(self, yhat, Y, learning_rate, momentum):
+    def push_pull(self, yhat, result, learning_rate):
 
         for layer in reversed(range(self.nb_layer)):
 
@@ -88,9 +88,20 @@ class LVQ:
         self.old_dW = self.dW
 
 
-    def max_in(self, m):
-        result = np.zeros_like(m)
-        result[np.arange(len(m)), m.argmax(1)] = 1
+    def closest_in(self, m):
+        result = []
+
+        for idx_c, classe in enumerate(m):
+            for idx_v, vector_nb in enumerate(classe):
+                if vector_nb[0].min() == vector_nb.min() and vector_nb[0].min() != 0:
+                    for idx_r, represent in enumerate(vector_nb):
+                        if represent[idx_r] == vector_nb.min():
+                            result[idx_c][idx_v] = vector_nb[idx_r]
+                else:
+                    break
+
+
+
         return result
 
     def predict(self, x, w):
