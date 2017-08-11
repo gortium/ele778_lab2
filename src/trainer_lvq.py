@@ -317,14 +317,14 @@ class Trainer:
                 # Generate batch
                 self.create_batch(data_type, "train", lvq)
 
-                # distance_test (changed to distance calculation)
-                vector = lvq.distance(self.batchs[epoch], self.W)
+                # distance_ calculation
+                distance = lvq.distance(self.batchs[epoch], self.W)
 
                 # find the closest representative of each input vector of 1 batch
-                result = lvq.closest_in(vector)
+                closest = lvq.closest_in(distance)
 
                 # Compute push or pull of each closest representative of the input vectors
-                new_w = lvq.push_pull(vector, self.W, result, self.learning_rate)
+                new_w = lvq.push_pull(self.batchs[epoch], self.W, closest, self.learning_rate)
 
             # **** vc ****
             self.logger.info("All epoch done, now VC")
@@ -395,7 +395,7 @@ def main():
     logging.basicConfig(stream=sys.stderr, level=logging.INFO)  # DEBUG to debug, INFO to turn off
     logger = logging.getLogger(__name__)
 
-    trainer = Trainer()
+    trainer = Trainer() # Initialize Class Trainer with LVQ parameters
     lvq = lvqantization.LVQ(trainer.nb_represent, trainer.nb_classe, trainer.nb_input, trainer.nb_output)
     time.sleep(0.05)
 

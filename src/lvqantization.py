@@ -3,6 +3,7 @@ import functools
 import os
 import sys
 import yaml
+import copy
 import numpy as np
 
 
@@ -28,18 +29,17 @@ class LVQ:
  #       self.nb_hidden = nb_hidden
  #       self.activation = activation
 
-    # compute the distance between vectors and all 30 representative (by default)
+    # compute the distance between vectors and all 30 representative (30 by default)
     def distance(self, x, w):
-        # Propogate inputs though network
 
         # Saving input
         self.X = x
         self.W = w
         square = 0
         v = 0   # vector position in vector array
-        vn = 0   # number position in vector array
+        vn = 0   # vector number position in vector array
         r = 0   # representative position in representative array
-        rn = 0   # number position in representative array
+        rn = 0   # representative number position in representative array
 
         # (vector classes, vector quantity by classe, representative classes, distance from representative)
         distance = np.zeros((10,10,10,3))
@@ -97,19 +97,28 @@ class LVQ:
         return result
 
     # push or pull representative with (w_new = w_old + learning_rate * |vector - w_old|)
-    def push_pull(self, vector, w, result, learning_rate):
+    def push_pull(self, vector, w, closest, learning_rate):
 
 
-        new_w = {0:[],1:[],2:[],3:[],4:[],5:[],6:[],7:[],8:[],9:[]}
+        new_w = copy.deepcopy(w) # copy all representative to keep the ones that don't change
 
-        for idx_vc, classe in enumerate(result):
-            if classe[0] == classe[2]: # vector is the same class as representative
+        for idx_vc, info_vector in enumerate(closest):
 
-                vector[classe[0]][classe[1]] # this is the vector info to iterate in
-                w[classe[2]][classe[3]] # this is the representative info to iterate in
+            classe_v = int(info_vector[0])
+            vector_nb = int(info_vector[1])
+            classe_r = int(info_vector[2])
+            represent_nb = int(info_vector[3])
+            x = vector[classe_v][vector_nb] # this is the vector info to iterate in
+            old_w = copy.deepcopy(w[classe_r][represent_nb]) # this is the representative info to iterate in
 
+            if info_vector[0] == info_vector[2]: # vector is the same class as representative
+                for idx_i, nb_w in enumerate(old_w):
+                    new_w[classe_r][represent_nb] = nb_w + (learning_rate * abs(x[idx_i] - nb_w))
             else: # not the same class
+                for idx_i, nb_w in enumerate(old_w):
+                    new_w[classe_r][represent_nb] = nb_w - (learning_rate * abs(x[idx_i] - nb_w))
 
+        return new_w
 
     def predict(self, x, w):
         yhat = self.distance(x, w)
