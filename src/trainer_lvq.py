@@ -321,10 +321,10 @@ class Trainer:
                 distance = lvq.distance(self.batchs[epoch], self.W)
 
                 # find the closest representative of each input vector of 1 batch
-                closest = lvq.closest_in(distance)
+                closest_tr = lvq.closest_in(distance, self.train_batch_size)
 
                 # Compute push or pull of each closest representative of the input vectors
-                new_w = lvq.push_pull(self.batchs[epoch], self.W, closest, self.learning_rate)
+                self.W = lvq.push_pull(self.batchs[epoch], self.W, closest_tr, self.learning_rate)
 
             # **** vc ****
             self.logger.info("All epoch done, now VC")
@@ -333,12 +333,12 @@ class Trainer:
             self.create_batch(data_type, "vc", lvq)
 
             # Predicting
-            result = lvq.predict(self.batchs[0])
+            closest_vc = lvq.predict(self.batchs[0], self.W, self.vc_batch_size)
 
             # checking answers
             good = 0
             for i in range(self.vc_batch_size):
-                good += np.array_equal(self.Ys[0][i], result[i])
+                good += np.array_equal(closest_vc[i][0], closest_vc[i][1])
 
             pourcent = good * 100 / self.vc_batch_size
 
@@ -357,22 +357,17 @@ class Trainer:
         self.logger.info("Saving this beauty..")
         self.save_lvq(lvq)
 
-        #     plt.pause(0.05)
-        #
-        # while True:
-        #     plt.pause(0.05)
-
     def test(self, lvq, data_type):
         # Generate batch
         self.create_batch(data_type, "test", lvq)
 
         # Predicting
-        result = lvq.predict(self.batchs[0], self.W)
+        closest_test = lvq.predict(self.batchs[0], self.W, self.test_batch_size)
 
         # checking answers
         good = 0
         for i in range(self.test_batch_size):
-            good += np.array_equal(self.Ys[0][i], result[i])
+            good += np.array_equal(closest_test[i][0], closest_test[i][1])
 
         pourcent = good * 100 / self.test_batch_size
 
@@ -399,8 +394,7 @@ def main():
     lvq = lvqantization.LVQ(trainer.nb_represent, trainer.nb_classe, trainer.nb_input, trainer.nb_output)
     time.sleep(0.05)
 
- #   load_lvq = input('Load last lvq? (yes or no): ')
-    trainer.train(lvq, trainer.filter) # for testing only, delete when working
+    load_lvq = input('Load last lvq? (yes or no): ')
 
     if load_lvq == 'yes':
         logger.info('Loading LVQ!')

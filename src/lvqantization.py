@@ -19,15 +19,7 @@ class LVQ:
         self.nb_output = nb_output
         self.X = None
         self.W = None
-        self.d = [None] * self.nb_represent
-        self.old_W = [0]
-   #     self.B = [None] * self.nb_layer
-   #     self.A = [None] * self.nb_layer
-  #      self.I = [None] * self.nb_layer
- #       self.E = [None] * self.nb_layer
-#        self.dW = [None] * self.nb_layer
- #       self.nb_hidden = nb_hidden
- #       self.activation = activation
+        self.new_W = None
 
     # compute the distance between vectors and all 30 representative (30 by default)
     def distance(self, x, w):
@@ -41,8 +33,11 @@ class LVQ:
         r = 0   # representative position in representative array
         rn = 0   # representative number position in representative array
 
+        # the max() function return the classe which contains the most vector in self.X
+        max_v = self.X[max(self.X, key=lambda k: self.X[k].__len__())].__len__()
+
         # (vector classes, vector quantity by classe, representative classes, distance from representative)
-        distance = np.zeros((10,10,10,3))
+        distance = np.zeros((self.nb_classe, max_v, self.nb_classe, self.nb_represent))
         
         # could substitute the variable += 1 by index and enumerate function in the "for loops"
         for v_classe in x:
@@ -51,7 +46,7 @@ class LVQ:
                     for r_classe in w:
                         for represent in w[r_classe]:
                             for  number in vector:
-                                square += (number - represent[vn])**2
+                                square = square + (number - represent[vn])**2
                                 vn += 1
                             vn = 0
                             distance[v_classe][v][r][rn] = square
@@ -67,12 +62,12 @@ class LVQ:
 
     # "m" contains 10 lists (1 for each classe) wich contains 10 vectors distributed in their corresponding classes.
     # all vectors contain the distance between itself and the 30 (by default) representative
-    def closest_in(self, m):
+    def closest_in(self, m, batch_size):
 
-        # "result" contains the 10 vectors (number per batches) with 4 info
-        # the vector class, it's position number,
-        # the representative's classe that is the closest and its position number
-        result = np.zeros((10,4))
+        # "result" contains the number of vector per batches with 4 info:
+            # the vector class, it's position number,
+            # the representative's classe that is the closest and its position number
+        result = np.zeros((batch_size, 4))
 
         v_nb = 0 # to identify the 10 vectors inside the "result" array
 
@@ -99,8 +94,7 @@ class LVQ:
     # push or pull representative with (w_new = w_old + learning_rate * |vector - w_old|)
     def push_pull(self, vector, w, closest, learning_rate):
 
-
-        new_w = copy.deepcopy(w) # copy all representative to keep the ones that don't change
+        self.new_W = copy.deepcopy(w) # copy all representative to keep the ones that don't change
 
         for idx_vc, info_vector in enumerate(closest):
 
@@ -113,16 +107,16 @@ class LVQ:
 
             if info_vector[0] == info_vector[2]: # vector is the same class as representative
                 for idx_i, nb_w in enumerate(old_w):
-                    new_w[classe_r][represent_nb] = nb_w + (learning_rate * abs(x[idx_i] - nb_w))
+                    self.new_W[classe_r][represent_nb][idx_i] = nb_w + (learning_rate * abs(x[idx_i] - nb_w))
             else: # not the same class
                 for idx_i, nb_w in enumerate(old_w):
-                    new_w[classe_r][represent_nb] = nb_w - (learning_rate * abs(x[idx_i] - nb_w))
+                    self.new_W[classe_r][represent_nb][idx_i] = nb_w - (learning_rate * abs(x[idx_i] - nb_w))
 
-        return new_w
+        return self.new_W
 
-    def predict(self, x, w):
-        yhat = self.distance(x, w)
-        return self.max_in(yhat)
+    def predict(self, x, w, batch_size):
+        distance = self.distance(x, w)
+        return self.closest_in(distance, batch_size)
 
 
 

@@ -2,7 +2,7 @@
 timeout:  60
 
 # Training learning rate
-learning_rate: 0.1
+learning_rate: 5
 
 # Training momentum
 momentum: 0.9
