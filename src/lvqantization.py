@@ -28,6 +28,7 @@ class LVQ:
  #       self.nb_hidden = nb_hidden
  #       self.activation = activation
 
+    # compute the distance between vectors and all 30 representative (by default)
     def distance(self, x, w):
         # Propogate inputs though network
 
@@ -40,10 +41,10 @@ class LVQ:
         r = 0   # representative position in representative array
         rn = 0   # number position in representative array
 
-        # (vector classe, vector number, representative classe, distance from representative)
+        # (vector classes, vector quantity by classe, representative classes, distance from representative)
         distance = np.zeros((10,10,10,3))
         
-        
+        # could substitute the variable += 1 by index and enumerate function in the "for loops"
         for v_classe in x:
             for vector in x[v_classe]:
                 if len(x[v_classe]) != 0:
@@ -64,45 +65,51 @@ class LVQ:
 
         return distance
 
-    # back propagation (push or pull representative)
-    def push_pull(self, yhat, result, learning_rate):
-
-        for layer in reversed(range(self.nb_layer)):
-
-            # Calculating error
-            if layer == self.nb_layer - 1:
-                self.E[layer] = np.multiply((Y - yhat), self.sigmoid_prime(self.I[layer]))
-            else:
-                self.E[layer] = np.dot(self.E[layer + 1], self.W[layer + 1].T) * self.sigmoid_prime(self.I[layer])
-
-            # Calculating dW
-            if layer == 0:
-                self.dW[layer] = np.dot(self.X.T, self.E[layer]) * learning_rate + self.old_dW[layer] * momentum
-            else:
-                self.dW[layer] = np.dot(self.A[layer - 1].T, self.E[layer]) * learning_rate + self.old_dW[layer] * momentum
-
-        # Adjusting weight by dW
-        for layer in range(self.nb_layer):
-            self.W[layer] += self.dW[layer]
-
-        self.old_dW = self.dW
-
-
+    # "m" contains 10 lists (1 for each classe) wich contains 10 vectors distributed in their corresponding classes.
+    # all vectors contain the distance between itself and the 30 (by default) representative
     def closest_in(self, m):
-        result = []
 
-        for idx_c, classe in enumerate(m):
-            for idx_v, vector_nb in enumerate(classe):
-                if vector_nb[0].min() == vector_nb.min() and vector_nb[0].min() != 0:
+        # "result" contains the 10 vectors (number per batches) with 4 info
+        # the vector class, it's position number,
+        # the representative's classe that is the closest and its position number
+        result = np.zeros((10,4))
+
+        v_nb = 0 # to identify the 10 vectors inside the "result" array
+
+        for idx_c, classe in enumerate(m): # classe of vectors
+            for idx_v, vector_nb in enumerate(classe): # vector number
+                if vector_nb.max() != 0: # vector not empty?
                     for idx_r, represent in enumerate(vector_nb):
-                        if represent[idx_r] == vector_nb.min():
-                            result[idx_c][idx_v] = vector_nb[idx_r]
+                        if vector_nb[idx_r].min() == vector_nb.min(): # is the closest representative in this class?
+                            # go throug the 3 representatives of each representatives classe
+                            for idx_i, represent_nb in enumerate(represent):
+                                if represent[idx_i] == vector_nb.min(): # which of the 3 is it?
+                                    result[v_nb][0] = idx_c # the vector class
+                                    result[v_nb][1] = idx_v # the vector position number
+                                    result[v_nb][2] = idx_r # the representative's classe that is the closest
+                                    result[v_nb][3] = idx_i # the representative's position number
+                                    v_nb += 1
+                                    break # the closest representative has been found
+                            break # the closest representative has been found
                 else:
-                    break
-
-
+                    break # all further vector are NULL
 
         return result
+
+    # push or pull representative with (w_new = w_old + learning_rate * |vector - w_old|)
+    def push_pull(self, vector, w, result, learning_rate):
+
+
+        new_w = {0:[],1:[],2:[],3:[],4:[],5:[],6:[],7:[],8:[],9:[]}
+
+        for idx_vc, classe in enumerate(result):
+            if classe[0] == classe[2]: # vector is the same class as representative
+
+                vector[classe[0]][classe[1]] # this is the vector info to iterate in
+                w[classe[2]][classe[3]] # this is the representative info to iterate in
+
+            else: # not the same class
+
 
     def predict(self, x, w):
         yhat = self.distance(x, w)

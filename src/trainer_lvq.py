@@ -318,13 +318,13 @@ class Trainer:
                 self.create_batch(data_type, "train", lvq)
 
                 # distance_test (changed to distance calculation)
-                yhat = lvq.distance(self.batchs[epoch], self.W)
+                vector = lvq.distance(self.batchs[epoch], self.W)
 
-                # is the closest representative of the same class?
-                result = lvq.closest_in(yhat)
+                # find the closest representative of each input vector of 1 batch
+                result = lvq.closest_in(vector)
 
-                # Compute push or pull of each closest representative
-                lvq.push_pull(yhat, result, self.learning_rate)
+                # Compute push or pull of each closest representative of the input vectors
+                new_w = lvq.push_pull(vector, self.W, result, self.learning_rate)
 
             # **** vc ****
             self.logger.info("All epoch done, now VC")
