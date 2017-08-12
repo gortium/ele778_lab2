@@ -10,7 +10,7 @@ data\raw\: mettre les fichiers de voix ici
 
 Executer:
 data_manager.py (filtre les données)
-trainer.py
+trainer_lvq.py
 
 Dépendance:
 - logging
