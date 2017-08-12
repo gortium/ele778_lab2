@@ -112,10 +112,10 @@ class Trainer:
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "lvq.yaml"), "r") as stream:
             self.config_input = yaml.load(stream)
 
-        self.nb_represent = input('How many representatives? (default 6): ')
-        self.nb_input = input('How many input? (default 60): ')
-        self.nb_classe = input('How many classes? (default 10): ')
-        self.nb_output = input('How many output neurones? (recommend 10): ')
+        self.nb_represent = int(input('How many representatives? (default 6): '))
+        self.nb_input = int(input('How many input? (default 60): '))
+        self.nb_classe = int(input('How many classes? (default 10): '))
+        self.nb_output = int(input('How many output? (recommend 10): '))
         self.filter = input('Wich filter type? (static, dynamic or combined): ')
 
         # LVQ Hyperparameters in config file
@@ -389,7 +389,6 @@ def main():
     time.sleep(0.05)
 
     load_lvq = input('Load last lvq? (yes or no): ')
-    trainer.train(lvq, trainer.filter)
 
     if load_lvq == 'yes':
         logger.info('Loading LVQ!')

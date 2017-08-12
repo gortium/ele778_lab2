@@ -1,5 +1,5 @@
 - filter: static
   nb_classe: 10
-  nb_input: 60
+  nb_input: 720
   nb_output: 10
-  nb_represent: 6
+  nb_represent: 12

@@ -2,10 +2,10 @@
 timeout:  60
 
 # Training learning rate
-learning_rate: 0.0001
+learning_rate: 0.3
 
 # Training batch size
-train_batch_size: 10
+train_batch_size: 1
 
 # Cross validation batch size
 vc_batch_size: 100
