@@ -36,11 +36,6 @@ class Trainer:
                 self.logger.info("learning_rate set to: %f", self.learning_rate)
             else:
                 self.logger.error("'learning_rate' parameter not found")
-            if "momentum" in param:
-                self.momentum = self.config[index]["momentum"]
-                self.logger.info("momentum set to: %f", self.momentum)
-            else:
-                self.logger.error("'momentum' parameter not found")
             if "train_batch_size" in param:
                 self.train_batch_size = self.config[index]["train_batch_size"]
                 self.logger.info("train_batch_size set to: %f", self.train_batch_size)
@@ -106,10 +101,7 @@ class Trainer:
         # Variable
         self.data_tree = None
         self.batchs = []
-        self.Ys = []
-    #   self.E = []
-        self.W = {0:[],1:[],2:[],3:[],4:[],5:[],6:[],7:[],8:[],9:[]}
-        self.dW = []
+        self.W = {row: [] for row in range(self.nb_classe)}
         self.vc_pourcents = []
         self.test_pourcents = []
 
@@ -120,8 +112,8 @@ class Trainer:
         with open(os.path.join(self.data_manager.paths["abs_config_path"], "lvq.yaml"), "r") as stream:
             self.config_input = yaml.load(stream)
 
-        self.nb_represent = input('How many representatives? (default 3): ')
-        self.nb_input = input('How many input? (default 40): ')
+        self.nb_represent = input('How many representatives? (default 6): ')
+        self.nb_input = input('How many input? (default 60): ')
         self.nb_classe = input('How many classes? (default 10): ')
         self.nb_output = input('How many output neurones? (recommend 10): ')
         self.filter = input('Wich filter type? (static, dynamic or combined): ')
@@ -208,7 +200,7 @@ class Trainer:
         self.batchs = []
 
         for i in range(nb_epoch):
-            batch = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}
+            batch = {row: [] for  row in range(self.nb_classe)}
             for j in range(size):
                 self.data_manager.find_random_and(self.data_tree[mode], self.data_manager.save_obj)
 
@@ -264,37 +256,37 @@ class Trainer:
                 return False
 
             size = self.train_batch_size
-            representor = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}
+            representor = {row: [] for  row in range(self.nb_classe)}
 
             while 1:
                 for j in range(size):
                     self.data_manager.find_random_and(self.data_tree["train"], self.data_manager.save_obj)
 
-                    if self.data_manager.list_name[0] == "o" and len(representor[0]) < 3:
+                    if self.data_manager.list_name[0] == "o" and len(representor[0]) < self.nb_represent:
                         representor[0].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "1" and len(representor[1]) < 3:
+                    elif self.data_manager.list_name[0] == "1" and len(representor[1]) < self.nb_represent:
                         representor[1].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "2" and len(representor[2]) < 3:
+                    elif self.data_manager.list_name[0] == "2" and len(representor[2]) < self.nb_represent:
                         representor[2].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "3" and len(representor[3]) < 3:
+                    elif self.data_manager.list_name[0] == "3" and len(representor[3]) < self.nb_represent:
                         representor[3].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "4" and len(representor[4]) < 3:
+                    elif self.data_manager.list_name[0] == "4" and len(representor[4]) < self.nb_represent:
                         representor[4].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "5" and len(representor[5]) < 3:
+                    elif self.data_manager.list_name[0] == "5" and len(representor[5]) < self.nb_represent:
                         representor[5].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "6" and len(representor[6]) < 3:
+                    elif self.data_manager.list_name[0] == "6" and len(representor[6]) < self.nb_represent:
                         representor[6].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "7" and len(representor[7]) < 3:
+                    elif self.data_manager.list_name[0] == "7" and len(representor[7]) < self.nb_represent:
                         representor[7].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "8" and len(representor[8]) < 3:
+                    elif self.data_manager.list_name[0] == "8" and len(representor[8]) < self.nb_represent:
                         representor[8].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
-                    elif self.data_manager.list_name[0] == "9" and len(representor[9]) < 3:
+                    elif self.data_manager.list_name[0] == "9" and len(representor[9]) < self.nb_represent:
                         representor[9].append([inner for outer in self.data_manager.saved_obj for inner in outer][:lvq.nb_input])
                     else:
                         self.logger.debug("Got a rare fish here.. ")
 
                 # test if all representant are selected
-                if sum(len(representor[i]) for i in representor) == 30:
+                if sum(len(representor[i]) for i in representor) == (self.nb_represent * self.nb_classe):
                     self.W = representor
                     break
 
@@ -323,8 +315,10 @@ class Trainer:
                 # find the closest representative of each input vector of 1 batch
                 closest_tr = lvq.closest_in(distance, self.train_batch_size)
 
+                learning_rate = self.learning_rate * (1 - (epoch / self.nb_epoch))
+
                 # Compute push or pull of each closest representative of the input vectors
-                self.W = lvq.push_pull(self.batchs[epoch], self.W, closest_tr, self.learning_rate)
+                self.W = lvq.push_pull(self.batchs[epoch], self.W, closest_tr, learning_rate)
 
             # **** vc ****
             self.logger.info("All epoch done, now VC")
@@ -338,7 +332,7 @@ class Trainer:
             # checking answers
             good = 0
             for i in range(self.vc_batch_size):
-                good += np.array_equal(closest_vc[i][0], closest_vc[i][1])
+                good += np.array_equal(closest_vc[i][0], closest_vc[i][2])
 
             pourcent = good * 100 / self.vc_batch_size
 
@@ -367,7 +361,7 @@ class Trainer:
         # checking answers
         good = 0
         for i in range(self.test_batch_size):
-            good += np.array_equal(closest_test[i][0], closest_test[i][1])
+            good += np.array_equal(closest_test[i][0], closest_test[i][2])
 
         pourcent = good * 100 / self.test_batch_size
 
@@ -395,6 +389,7 @@ def main():
     time.sleep(0.05)
 
     load_lvq = input('Load last lvq? (yes or no): ')
+    trainer.train(lvq, trainer.filter)
 
     if load_lvq == 'yes':
         logger.info('Loading LVQ!')
@@ -403,7 +398,7 @@ def main():
     elif load_lvq == 'no':
         logger.info('Starting new LVQ')
         time.sleep(0.05)
-    #   trainer.input_config()
+        trainer.input_config()
         trainer.train(lvq, trainer.filter)
     else:
         logger.info('only answer "yes" or "no" with no caps please.')

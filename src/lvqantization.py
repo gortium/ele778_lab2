@@ -103,7 +103,7 @@ class LVQ:
             classe_r = int(info_vector[2])
             represent_nb = int(info_vector[3])
             x = vector[classe_v][vector_nb] # this is the vector info to iterate in
-            old_w = copy.deepcopy(w[classe_r][represent_nb]) # this is the representative info to iterate in
+            old_w = copy.deepcopy(w[classe_r][represent_nb-1]) # this is the representative info to iterate in
 
             if info_vector[0] == info_vector[2]: # vector is the same class as representative
                 for idx_i, nb_w in enumerate(old_w):

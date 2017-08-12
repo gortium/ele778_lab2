@@ -2,10 +2,7 @@
 timeout:  60
 
 # Training learning rate
-learning_rate: 5
-
-# Training momentum
-momentum: 0.9
+learning_rate: 0.0001
 
 # Training batch size
 train_batch_size: 10
