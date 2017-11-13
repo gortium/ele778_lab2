@@ -35,13 +35,13 @@ class DataManager:
         # Generating data absolute paths from config file
         for index, param in enumerate(self.config):
             if "raw_data_path" in param:
-                self.paths["abs_raw_data_path"] = os.path.join(self.paths["abs_project_path"], self.config[index]["raw_data_path"])
+                self.paths["abs_raw_data_path"] = os.path.join(self.paths["abs_project_path"], self.config[index]["raw_data_path"]).replace("/",os.sep)
                 self.logger.debug("raw_data_path: %s", str(self.paths["abs_raw_data_path"]))
             else:
                 self.logger.error("'raw_data_path' parameter not found")
 
             if "filtered_data_path" in param:
-                self.paths["abs_filtered_data_path"] = os.path.join(self.paths["abs_project_path"], self.config[index]["filtered_data_path"])
+                self.paths["abs_filtered_data_path"] = os.path.join(self.paths["abs_project_path"], self.config[index]["filtered_data_path"]).replace("/",os.sep)
                 self.logger.debug("filtered_data_path: %s", str(self.paths["abs_filtered_data_path"]))
             else:
                 self.logger.error("'filtered_data_path' parameter not found")
