@@ -24,7 +24,7 @@ class DataManager:
 
         # Generating project and config absolute path
         self.paths["abs_script_path"] = os.path.dirname(__file__).replace("/",os.sep)
-        self.paths["rel_config_path"] = "config"+os.sep+"data_manager.yaml"
+        self.paths["rel_config_path"] = "config"
         self.paths["abs_project_path"] = self.paths["abs_script_path"][:-len(self.paths["abs_script_path"].split(os.sep)[-1])]
         self.paths["abs_config_path"] = os.path.join(self.paths["abs_project_path"], self.paths["rel_config_path"])
 
