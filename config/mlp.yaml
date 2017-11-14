@@ -12,3 +12,7 @@ nb_output: 10
 
 # Activation function
 activation: "sigmoid"
+
+# Filter used on the data
+filter: static
+

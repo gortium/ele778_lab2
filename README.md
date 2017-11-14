@@ -6,10 +6,11 @@ Python 3.5
 le fichier de configuration permet de choisir l'emplacement du data et l'emplacement pour les fichiers filtré.
 
 Parametres nécéssaire:
-- raw_data_path:
-- filtered_data_path:
+data\raw\: mettre les fichiers de voix ici
 
-Executer pre_traitement.py
+Executer:
+data_manager.py (filtre les données)
+trainer_lvq.py
 
 Dépendance:
 - logging
